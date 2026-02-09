@@ -1,0 +1,48 @@
+{
+  "title": "API Documentation",
+  "sections": {
+    "gettingStarted": "Getting Started",
+    "authentication": "Authentication",
+    "sendOtp": "Send OTP",
+    "verifyOtp": "Verify OTP",
+    "rateLimits": "Rate Limits"
+  },
+  "gettingStarted": {
+    "desc": "NadbaOTP provides a simple REST API for sending and verifying OTP codes via WhatsApp. Follow these steps to integrate OTP verification into your application.",
+    "quickStart": "Quick Start",
+    "step1": "Create an account and get your API key",
+    "step2": "Connect your WhatsApp number",
+    "step3": "Make your first API call to send an OTP",
+    "step4": "Verify the OTP code from your user",
+    "baseUrl": "Base URL"
+  },
+  "auth": {
+    "desc": "All API requests require authentication using a Bearer token. Include your API key in the Authorization header.",
+    "securityTitle": "Keep your API key secure",
+    "securityDesc": "Never expose your API key in client-side code. Always make API calls from your server."
+  },
+  "sendOtp": {
+    "desc": "Send a one-time password to a WhatsApp number.",
+    "requestBody": "Request Body",
+    "phoneDesc": "Phone number with country code",
+    "templateDesc": "Message template with {{code}} placeholder",
+    "expiryDesc": "OTP expiry time in seconds (default: 300)"
+  },
+  "verifyOtp": {
+    "desc": "Verify an OTP code submitted by the user."
+  },
+  "rateLimits": {
+    "desc": "API rate limits are applied per API key to ensure fair usage.",
+    "plan": "Plan",
+    "reqPerMin": "Requests/min",
+    "dailyLimit": "Daily Limit",
+    "unlimited": "Unlimited"
+  },
+  "param": "Parameter",
+  "type": "Type",
+  "description": "Description",
+  "tryItLive": "Try it Live",
+  "phoneNumber": "Phone Number",
+  "sendTestOtp": "Send Test OTP",
+  "sending": "Sending..."
+}

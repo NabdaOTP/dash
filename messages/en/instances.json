@@ -1,0 +1,16 @@
+{
+  "title": "Instances",
+  "subtitle": "Manage your OTP service instances",
+  "create": "Create Instance",
+  "search": "Search instances...",
+  "name": "Name",
+  "status": "Status",
+  "apiKey": "API Key",
+  "created": "Created",
+  "actions": "Actions",
+  "credentials": "Credentials",
+  "usageStats": "Usage Statistics",
+  "otpSent": "OTP Sent",
+  "otpVerified": "OTP Verified",
+  "integrationCode": "Integration Code"
+}

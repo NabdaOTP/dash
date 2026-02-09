@@ -1,0 +1,25 @@
+{
+  "appName": "NadbaOTP",
+  "nav": {
+    "dashboard": "Dashboard",
+    "instances": "Instances",
+    "apiDocs": "API Docs",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "logout": "Logout"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "copy": "Copy",
+    "copied": "Copied!"
+  },
+  "status": {
+    "loading": "Loading...",
+    "success": "Operation completed successfully",
+    "error": "An error occurred"
+  }
+}

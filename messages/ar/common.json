@@ -1,0 +1,25 @@
+{
+  "appName": "نَدبة OTP",
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "instances": "النُسخ",
+    "apiDocs": "توثيق API",
+    "faq": "الأسئلة الشائعة",
+    "contact": "تواصل معنا",
+    "logout": "تسجيل الخروج"
+  },
+  "actions": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "search": "بحث",
+    "copy": "نسخ",
+    "copied": "تم النسخ!"
+  },
+  "status": {
+    "loading": "جاري التحميل...",
+    "success": "تمت العملية بنجاح",
+    "error": "حدث خطأ"
+  }
+}

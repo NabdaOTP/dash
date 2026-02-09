@@ -1,0 +1,19 @@
+{
+  "title": "Contact Us",
+  "subtitle": "We'd love to hear from you. Get in touch with our team.",
+  "name": "Name",
+  "email": "Email",
+  "message": "Message",
+  "messagePlaceholder": "Tell us how we can help...",
+  "submit": "Send Message",
+  "successTitle": "Message Sent!",
+  "successDesc": "Thanks for reaching out. Our team will review your message and get back to you within 24 hours.",
+  "sendAnother": "Send Another Message",
+  "emailSupport": "Email Support",
+  "emailSupportDesc": "Our team typically responds within 24 hours.",
+  "whatsapp": "WhatsApp",
+  "whatsappDesc": "Chat with us directly on WhatsApp.",
+  "liveChat": "Live Chat",
+  "liveChatDesc": "Available Mon-Fri, 9AM - 6PM (AST).",
+  "startChat": "Start Chat"
+}

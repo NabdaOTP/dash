@@ -1,0 +1,12 @@
+{
+  "title": "Frequently Asked Questions",
+  "subtitle": "Find answers to common questions about NadbaOTP",
+  "search": "Search questions...",
+  "noResults": "No questions match your search. Try different keywords.",
+  "categories": {
+    "setup": "Setup",
+    "troubleshooting": "Troubleshooting",
+    "pricing": "Pricing",
+    "security": "Security"
+  }
+}

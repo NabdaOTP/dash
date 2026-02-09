@@ -1,0 +1,19 @@
+{
+  "title": "لوحة التحكم",
+  "welcome": "مرحباً بعودتك \ud83d\udc4b",
+  "subtitle": "إليك ما يحدث مع خدمة OTP الخاصة بك اليوم.",
+  "connectWhatsApp": "ربط واتساب",
+  "scanQR": "امسح رمز QR بتطبيق واتساب لربط حسابك والبدء بإرسال رسائل OTP.",
+  "connected": "متصل",
+  "sessionExpires": "تنتهي الجلسة خلال",
+  "activeSessions": "الجلسات النشطة",
+  "apiCalls": "طلبات API اليوم",
+  "successRate": "معدل النجاح",
+  "trendSessions": "+3 من أمس",
+  "trendApiCalls": "+12% من أمس",
+  "trendSuccessRate": "+0.3% من الأسبوع الماضي",
+  "createInstance": "إنشاء نسخة جديدة",
+  "createInstanceDesc": "إعداد نسخة OTP جديدة",
+  "viewDocs": "عرض توثيق API",
+  "viewDocsDesc": "استكشاف مرجع API"
+}

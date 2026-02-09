@@ -1,0 +1,16 @@
+{
+  "title": "النُسخ",
+  "subtitle": "إدارة نسخ خدمة OTP الخاصة بك",
+  "create": "إنشاء نسخة",
+  "search": "البحث في النُسخ...",
+  "name": "الاسم",
+  "status": "الحالة",
+  "apiKey": "مفتاح API",
+  "created": "تاريخ الإنشاء",
+  "actions": "الإجراءات",
+  "credentials": "بيانات الاعتماد",
+  "usageStats": "إحصائيات الاستخدام",
+  "otpSent": "OTP المرسلة",
+  "otpVerified": "OTP المتحققة",
+  "integrationCode": "كود التكامل"
+}

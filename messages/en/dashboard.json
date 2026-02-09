@@ -1,0 +1,19 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back \ud83d\udc4b",
+  "subtitle": "Here's what's happening with your OTP service today.",
+  "connectWhatsApp": "Connect WhatsApp",
+  "scanQR": "Scan the QR code with your WhatsApp app to link your account and start sending OTP messages.",
+  "connected": "Connected",
+  "sessionExpires": "Session expires in",
+  "activeSessions": "Active Sessions",
+  "apiCalls": "API Calls Today",
+  "successRate": "Success Rate",
+  "trendSessions": "+3 from yesterday",
+  "trendApiCalls": "+12% from yesterday",
+  "trendSuccessRate": "+0.3% from last week",
+  "createInstance": "Create New Instance",
+  "createInstanceDesc": "Set up a new OTP instance",
+  "viewDocs": "View API Docs",
+  "viewDocsDesc": "Explore the API reference"
+}

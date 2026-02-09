@@ -1,0 +1,48 @@
+{
+  "title": "توثيق API",
+  "sections": {
+    "gettingStarted": "البدء",
+    "authentication": "المصادقة",
+    "sendOtp": "إرسال OTP",
+    "verifyOtp": "التحقق من OTP",
+    "rateLimits": "حدود الاستخدام"
+  },
+  "gettingStarted": {
+    "desc": "يوفر NadbaOTP واجهة REST API بسيطة لإرسال والتحقق من رموز OTP عبر واتساب. اتبع هذه الخطوات لدمج التحقق من OTP في تطبيقك.",
+    "quickStart": "البدء السريع",
+    "step1": "أنشئ حساباً واحصل على مفتاح API الخاص بك",
+    "step2": "اربط رقم واتساب الخاص بك",
+    "step3": "أجرِ أول طلب API لإرسال OTP",
+    "step4": "تحقق من رمز OTP من المستخدم",
+    "baseUrl": "الرابط الأساسي"
+  },
+  "auth": {
+    "desc": "جميع طلبات API تتطلب مصادقة باستخدام رمز Bearer. أضف مفتاح API الخاص بك في ترويسة Authorization.",
+    "securityTitle": "حافظ على أمان مفتاح API",
+    "securityDesc": "لا تكشف مفتاح API في الكود من جانب العميل. أجرِ طلبات API دائماً من الخادم."
+  },
+  "sendOtp": {
+    "desc": "إرسال كلمة مرور لمرة واحدة إلى رقم واتساب.",
+    "requestBody": "نص الطلب",
+    "phoneDesc": "رقم الهاتف مع رمز الدولة",
+    "templateDesc": "قالب الرسالة مع عنصر {{code}}",
+    "expiryDesc": "مدة صلاحية OTP بالثواني (الافتراضي: 300)"
+  },
+  "verifyOtp": {
+    "desc": "التحقق من رمز OTP المُدخل من قبل المستخدم."
+  },
+  "rateLimits": {
+    "desc": "يتم تطبيق حدود الاستخدام لكل مفتاح API لضمان الاستخدام العادل.",
+    "plan": "الخطة",
+    "reqPerMin": "طلبات/دقيقة",
+    "dailyLimit": "الحد اليومي",
+    "unlimited": "غير محدود"
+  },
+  "param": "المعامل",
+  "type": "النوع",
+  "description": "الوصف",
+  "tryItLive": "جربها مباشرة",
+  "phoneNumber": "رقم الهاتف",
+  "sendTestOtp": "إرسال OTP تجريبي",
+  "sending": "جاري الإرسال..."
+}
