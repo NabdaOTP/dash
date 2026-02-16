@@ -27,7 +27,7 @@ const faqCategories: FaqCategory[] = [
     nameKey: "categories.setup",
     items: [
       {
-        q: "How do I get started with NadbaOTP?",
+        q: "How do I get started with Nadba OTP?",
         a: "Create an account, connect your WhatsApp number by scanning the QR code on the dashboard, then generate an API key from the Instances page. You can start sending OTP messages immediately after setup.",
       },
       {
@@ -78,7 +78,7 @@ const faqCategories: FaqCategory[] = [
     nameKey: "categories.security",
     items: [
       {
-        q: "How secure is NadbaOTP?",
+        q: "How secure is Nadba OTP?",
         a: "We use industry-standard encryption for all data in transit and at rest. API keys are hashed, OTP codes are generated using cryptographically secure random number generators, and all sessions are encrypted end-to-end.",
       },
       {

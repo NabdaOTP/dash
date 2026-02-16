@@ -12,5 +12,7 @@
   "usageStats": "إحصائيات الاستخدام",
   "otpSent": "OTP المرسلة",
   "otpVerified": "OTP المتحققة",
-  "integrationCode": "كود التكامل"
+  "integrationCode": "كود التكامل",
+  "noInstances": "ليس لديك أي نسخ بعد. أنشئ نسختك الأولى!",
+  "noResults": "لا توجد نسخ تطابق بحثك."
 }

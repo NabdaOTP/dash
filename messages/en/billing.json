@@ -1,0 +1,27 @@
+{
+  "title": "Billing",
+  "subtitle": "Manage your subscription and invoices",
+  "plans": {
+    "title": "Plans",
+    "current": "Current Plan",
+    "subscribe": "Subscribe",
+    "subscribing": "Subscribing...",
+    "startTrial": "Start Free Trial",
+    "startingTrial": "Starting...",
+    "free": "Free"
+  },
+  "subscription": {
+    "autoRenew": "Auto-Renewal",
+    "autoRenewOn": "Auto-renewal is enabled",
+    "autoRenewOff": "Auto-renewal is disabled",
+    "enable": "Enable",
+    "disable": "Disable"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "amount": "Amount",
+    "status": "Status",
+    "date": "Date",
+    "noInvoices": "No invoices yet"
+  }
+}

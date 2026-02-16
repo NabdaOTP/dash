@@ -6,6 +6,9 @@
     "apiDocs": "API Docs",
     "faq": "FAQ",
     "contact": "Contact",
+    "messages": "Messages",
+    "settings": "Settings",
+    "billing": "Billing",
     "logout": "Logout"
   },
   "actions": {

@@ -4,7 +4,18 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(timeout:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:api.nabdaotp.com)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "Bash(npx next build:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(xargs cat:*)",
+      "WebFetch(domain:nadba-otp.netlify.app)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd Netlify config and plugin for API proxy\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
     ]
   }
 }

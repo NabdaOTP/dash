@@ -1,0 +1,27 @@
+{
+  "title": "الفوترة",
+  "subtitle": "إدارة اشتراكك وفواتيرك",
+  "plans": {
+    "title": "الخطط",
+    "current": "الخطة الحالية",
+    "subscribe": "اشتراك",
+    "subscribing": "جاري الاشتراك...",
+    "startTrial": "بدء الفترة التجريبية",
+    "startingTrial": "جاري البدء...",
+    "free": "مجاني"
+  },
+  "subscription": {
+    "autoRenew": "التجديد التلقائي",
+    "autoRenewOn": "التجديد التلقائي مفعل",
+    "autoRenewOff": "التجديد التلقائي معطل",
+    "enable": "تفعيل",
+    "disable": "تعطيل"
+  },
+  "invoices": {
+    "title": "الفواتير",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "date": "التاريخ",
+    "noInvoices": "لا توجد فواتير بعد"
+  }
+}

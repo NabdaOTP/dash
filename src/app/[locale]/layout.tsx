@@ -5,6 +5,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/features/layout/components/theme-provider";
+import { AuthProvider } from "@/features/auth/context/auth-context";
 import "../globals.css";
 
 const roboto = Roboto({
@@ -26,8 +27,11 @@ const alexandria = Alexandria({
 });
 
 export const metadata: Metadata = {
-  title: "NadbaOTP",
+  title: "Nadba OTP",
   description: "WhatsApp OTP Service Dashboard",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export function generateStaticParams() {
@@ -63,7 +67,9 @@ export default async function LocaleLayout({
         }`}
       >
         <NextIntlClientProvider messages={messages}>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

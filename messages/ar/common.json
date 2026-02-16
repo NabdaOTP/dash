@@ -6,6 +6,9 @@
     "apiDocs": "توثيق API",
     "faq": "الأسئلة الشائعة",
     "contact": "تواصل معنا",
+    "messages": "الرسائل",
+    "settings": "الإعدادات",
+    "billing": "الفوترة",
     "logout": "تسجيل الخروج"
   },
   "actions": {

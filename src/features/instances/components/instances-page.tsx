@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Search, Plus, Eye, Pencil, Trash2, Server } from "lucide-react";
+import { Search, Plus, Eye, Pencil, Trash2, Server, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,56 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { InstanceDetailModal } from "./instance-detail-modal";
+import * as instancesService from "../services/instances-service";
 import type { Instance } from "../types";
-
-// Mock data — will be replaced by service calls
-const mockInstances: Instance[] = [
-  {
-    id: "1",
-    name: "Production OTP",
-    status: "active",
-    apiKey: "ndb_live_sk_7f8a9b2c3d4e5f6g",
-    token: "tok_live_abc123def456",
-    apiId: "api_prod_001",
-    createdAt: "2025-01-15",
-    otpSent: 12500,
-    otpVerified: 12300,
-  },
-  {
-    id: "2",
-    name: "Staging Environment",
-    status: "active",
-    apiKey: "ndb_test_sk_1a2b3c4d5e6f7g8h",
-    token: "tok_test_xyz789ghi012",
-    apiId: "api_stg_002",
-    createdAt: "2025-02-01",
-    otpSent: 450,
-    otpVerified: 440,
-  },
-  {
-    id: "3",
-    name: "Mobile App",
-    status: "inactive",
-    apiKey: "ndb_live_sk_9h8g7f6e5d4c3b2a",
-    token: "tok_live_mno345pqr678",
-    apiId: "api_mob_003",
-    createdAt: "2025-01-28",
-    otpSent: 8200,
-    otpVerified: 8100,
-  },
-  {
-    id: "4",
-    name: "Legacy System",
-    status: "error",
-    apiKey: "ndb_live_sk_0z9y8x7w6v5u4t3s",
-    token: "tok_live_stu901vwx234",
-    apiId: "api_leg_004",
-    createdAt: "2024-11-20",
-    otpSent: 3200,
-    otpVerified: 2900,
-  },
-];
 
 const statusStyles: Record<string, string> = {
   active: "bg-success/10 text-success border-success/20",
@@ -72,17 +33,92 @@ const statusStyles: Record<string, string> = {
 };
 
 function maskKey(key: string) {
+  if (!key || key.length < 12) return key || "—";
   return key.slice(0, 12) + "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
 }
 
 export function InstancesPage() {
+  const [instances, setInstances] = useState<Instance[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const t = useTranslations("instances");
+  const tCommon = useTranslations("common");
 
-  const filtered = mockInstances.filter((inst) =>
+  const fetchInstances = useCallback(async () => {
+    try {
+      const data = await instancesService.getMyInstances();
+      setInstances(data);
+    } catch {
+      // Error handled by API client
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInstances();
+  }, [fetchInstances]);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      await instancesService.createInstance();
+      await fetchInstances();
+    } catch {
+      // Error handled by API client
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleEdit = (inst: Instance) => {
+    setEditingInstance(inst);
+    setEditName(inst.name);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingInstance) return;
+    setSaving(true);
+    try {
+      await instancesService.updateInstance(editingInstance.id, { name: editName });
+      setEditingInstance(null);
+      await fetchInstances();
+    } catch {
+      // Error handled by API client
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await instancesService.deleteInstance(id);
+      await fetchInstances();
+    } catch {
+      // Error handled by API client
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filtered = instances.filter((inst) =>
     inst.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -91,8 +127,16 @@ export function InstancesPage() {
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button className="gradient-primary text-primary-foreground gap-2 shrink-0">
-          <Plus className="h-4 w-4" />
+        <Button
+          onClick={handleCreate}
+          disabled={creating}
+          className="gradient-primary text-primary-foreground gap-2 shrink-0"
+        >
+          {creating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           {t("create")}
         </Button>
       </div>
@@ -109,64 +153,117 @@ export function InstancesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/30">
-                <TableHead className="font-semibold">{t("name")}</TableHead>
-                <TableHead className="font-semibold">{t("status")}</TableHead>
-                <TableHead className="font-semibold">{t("apiKey")}</TableHead>
-                <TableHead className="font-semibold">{t("created")}</TableHead>
-                <TableHead className="font-semibold text-end">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((inst) => (
-                <TableRow key={inst.id} className="hover:bg-muted/20 transition-colors">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Server className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="font-medium text-foreground">{inst.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`text-xs ${statusStyles[inst.status]}`}>
-                      {inst.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <code className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-                      {maskKey(inst.apiKey)}
-                    </code>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{inst.createdAt}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInstance(inst)}>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      {filtered.length === 0 ? (
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
+          <Server className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            {instances.length === 0
+              ? t("noInstances")
+              : t("noResults")}
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="font-semibold">{t("name")}</TableHead>
+                  <TableHead className="font-semibold">{t("status")}</TableHead>
+                  <TableHead className="font-semibold">{t("apiKey")}</TableHead>
+                  <TableHead className="font-semibold">{t("created")}</TableHead>
+                  <TableHead className="font-semibold text-end">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((inst) => (
+                  <TableRow key={inst.id} className="hover:bg-muted/20 transition-colors">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Server className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="font-medium text-foreground">{inst.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] || ""}`}>
+                        {inst.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                        {maskKey(inst.apiKey)}
+                      </code>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{inst.createdAt}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInstance(inst)}>
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(inst)}>
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={deletingId === inst.id}
+                          onClick={() => handleDelete(inst.id)}
+                        >
+                          {deletingId === inst.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       <InstanceDetailModal
         instance={selectedInstance}
         onClose={() => setSelectedInstance(null)}
       />
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingInstance} onOpenChange={() => setEditingInstance(null)}>
+        <DialogContent className="bg-card">
+          <DialogHeader>
+            <DialogTitle>{tCommon("actions.edit")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>{t("name")}</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                maxLength={150}
+                disabled={saving}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingInstance(null)} disabled={saving}>
+              {tCommon("actions.cancel")}
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={saving || !editName.trim()}
+              className="gradient-primary text-primary-foreground"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : tCommon("actions.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

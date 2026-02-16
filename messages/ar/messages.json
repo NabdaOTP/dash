@@ -1,0 +1,16 @@
+{
+  "title": "الرسائل",
+  "subtitle": "عرض جميع الرسائل المرسلة من نسختك",
+  "phone": "الهاتف",
+  "message": "الرسالة",
+  "status": "الحالة",
+  "date": "التاريخ",
+  "filterAll": "الكل",
+  "filterQueued": "في الانتظار",
+  "filterSent": "مرسلة",
+  "filterInvalid": "غير صالحة",
+  "noMessages": "لم يتم العثور على رسائل",
+  "previous": "السابق",
+  "next": "التالي",
+  "page": "صفحة {current} من {total}"
+}

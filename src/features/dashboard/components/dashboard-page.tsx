@@ -1,70 +1,181 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import {
-  Plus, BookOpen } from "lucide-react";
-// import { QRCodeDisplay } from "@/components/qr-code-display";
-// import { StatsCard } from "./stats-card";
+  Plus,
+  BookOpen,
+  Wifi,
+  WifiOff,
+  MessageSquare,
+  Server,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
+import * as whatsappService from "@/features/whatsapp/services/whatsapp-service";
 
 export function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [connectingWa, setConnectingWa] = useState(false);
+  const [disconnectingWa, setDisconnectingWa] = useState(false);
   const t = useTranslations("dashboard");
+
+  const fetchData = async () => {
+    try {
+      const data = await getDashboardData();
+      setStats(data);
+    } catch {
+      // Error handled by API client
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleConnectWhatsApp = async () => {
+    setConnectingWa(true);
+    try {
+      await whatsappService.connect();
+      await fetchData();
+    } catch {
+      // handled
+    } finally {
+      setConnectingWa(false);
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    setDisconnectingWa(true);
+    try {
+      await whatsappService.disconnect();
+      await fetchData();
+    } catch {
+      // handled
+    } finally {
+      setDisconnectingWa(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Welcome */}
-      {/* <div className="space-y-1">
+      <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">{t("welcome")}</h1>
         <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
-      </div> */}
+      </div>
 
-      {/* QR Code Section */}
-      {/* <div className="bg-card rounded-2xl border border-border p-8 shadow-card">
-        <div className="flex flex-col lg:flex-row items-center gap-8">
-          <QRCodeDisplay size={180} scanning />
-          <div className="flex-1 space-y-4 text-center lg:text-start">
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-foreground">{t("connectWhatsApp")}</h2>
-              <p className="text-sm text-muted-foreground max-w-md">{t("scanQR")}</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Current Instance */}
+        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Server className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-                <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                {t("connected")}: +966 **** 1234
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-                <div className="h-2 w-2 rounded-full bg-warning" />
-                {t("sessionExpires")}: 23h
-              </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("currentInstance")}</p>
+              <p className="font-semibold text-foreground">{stats?.instanceName || "—"}</p>
             </div>
           </div>
         </div>
-      </div> */}
 
-      {/* Stats Grid */}
-      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatsCard
-          title={t("activeSessions")}
-          value="12"
-          icon={Activity}
-          trend={t("trendSessions")}
-          trendUp
-        />
-        <StatsCard
-          title={t("apiCalls")}
-          value="2,847"
-          icon={PhoneCall}
-          trend={t("trendApiCalls")}
-          trendUp
-        />
-        <StatsCard
-          title={t("successRate")}
-          value="98.5%"
-          icon={CheckCircle}
-          trend={t("trendSuccessRate")}
-          trendUp
-        />
-      </div> */}
+        {/* WhatsApp Status */}
+        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                  stats?.whatsappConnected
+                    ? "bg-success/10"
+                    : "bg-muted"
+                }`}
+              >
+                {stats?.whatsappConnected ? (
+                  <Wifi className="h-5 w-5 text-success" />
+                ) : (
+                  <WifiOff className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">WhatsApp</p>
+                <p className="font-semibold text-foreground">
+                  {stats?.whatsappConnected ? t("connected") : t("disconnected")}
+                </p>
+              </div>
+            </div>
+            {stats?.whatsappConnected ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDisconnectWhatsApp}
+                disabled={disconnectingWa}
+                className="text-xs text-destructive"
+              >
+                {disconnectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("disconnect")}
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleConnectWhatsApp}
+                disabled={connectingWa}
+                className="text-xs text-primary"
+              >
+                {connectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("connect")}
+              </Button>
+            )}
+          </div>
+          {stats?.whatsappPhone && (
+            <p className="text-xs text-muted-foreground">{stats.whatsappPhone}</p>
+          )}
+        </div>
+
+        {/* Messages */}
+        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
+              <MessageSquare className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("totalMessages")}</p>
+              <p className="font-semibold text-foreground">
+                {stats?.totalMessages?.toLocaleString() || "0"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Refresh */}
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setLoading(true);
+            fetchData();
+          }}
+          className="text-muted-foreground gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          {t("refresh")}
+        </Button>
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

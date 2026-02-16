@@ -12,5 +12,7 @@
   "usageStats": "Usage Statistics",
   "otpSent": "OTP Sent",
   "otpVerified": "OTP Verified",
-  "integrationCode": "Integration Code"
+  "integrationCode": "Integration Code",
+  "noInstances": "You don't have any instances yet. Create your first one!",
+  "noResults": "No instances match your search."
 }

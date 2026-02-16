@@ -6,6 +6,12 @@ export interface Instance {
   token: string;
   apiId: string;
   createdAt: string;
-  otpSent: number;
-  otpVerified: number;
+  otpSent?: number;
+  otpVerified?: number;
+}
+
+export interface CreateInstanceResponse {
+  id: string;
+  name: string;
+  apiKey: string;
 }

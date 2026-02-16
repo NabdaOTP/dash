@@ -68,7 +68,10 @@ interface InstanceDetailModalProps {
   onClose: () => void;
 }
 
-export function InstanceDetailModal({ instance, onClose }: InstanceDetailModalProps) {
+export function InstanceDetailModal({
+  instance,
+  onClose,
+}: InstanceDetailModalProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const t = useTranslations("instances");
 
@@ -94,16 +97,25 @@ export function InstanceDetailModal({ instance, onClose }: InstanceDetailModalPr
           <div className="space-y-6 pt-2">
             {/* Credentials */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">{t("credentials")}</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("credentials")}
+              </h3>
               {[
                 { label: "API ID", value: instance.apiId },
                 { label: "API Key", value: instance.apiKey },
                 { label: "Token", value: instance.token },
               ].map((field) => (
-                <div key={field.label} className="flex items-center justify-between bg-muted/30 rounded-lg px-4 py-3">
+                <div
+                  key={field.label}
+                  className="flex items-center justify-between bg-muted/30 rounded-lg px-4 py-3"
+                >
                   <div>
-                    <p className="text-xs text-muted-foreground">{field.label}</p>
-                    <code className="text-sm font-mono text-foreground">{field.value}</code>
+                    <p className="text-xs text-muted-foreground">
+                      {field.label}
+                    </p>
+                    <code className="text-sm font-mono text-foreground">
+                      {field.value}
+                    </code>
                   </div>
                   <Button
                     variant="ghost"
@@ -123,22 +135,34 @@ export function InstanceDetailModal({ instance, onClose }: InstanceDetailModalPr
 
             {/* Usage Stats */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">{t("usageStats")}</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("usageStats")}
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-muted/30 rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground">{t("otpSent")}</p>
-                  <p className="text-xl font-bold text-foreground">{instance.otpSent.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("otpSent")}
+                  </p>
+                  <p className="text-xl font-bold text-foreground">
+                    {(instance.otpSent ?? 0).toLocaleString()}
+                  </p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-4">
-                  <p className="text-xs text-muted-foreground">{t("otpVerified")}</p>
-                  <p className="text-xl font-bold text-foreground">{instance.otpVerified.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("otpVerified")}
+                  </p>
+                  <p className="text-xl font-bold text-foreground">
+                    {(instance.otpVerified ?? 0).toLocaleString()}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Code Snippets */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">{t("integrationCode")}</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("integrationCode")}
+              </h3>
               <CodeSnippet snippets={codeSnippets} />
             </div>
           </div>

@@ -1,0 +1,16 @@
+{
+  "title": "Messages",
+  "subtitle": "View all messages sent from your instance",
+  "phone": "Phone",
+  "message": "Message",
+  "status": "Status",
+  "date": "Date",
+  "filterAll": "All",
+  "filterQueued": "Queued",
+  "filterSent": "Sent",
+  "filterInvalid": "Invalid",
+  "noMessages": "No messages found",
+  "previous": "Previous",
+  "next": "Next",
+  "page": "Page {current} of {total}"
+}

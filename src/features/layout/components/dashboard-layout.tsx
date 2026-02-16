@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
-import { ChevronLeft, ChevronRight, User, LogOut } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  User,
+  LogOut,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,15 +19,39 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "./theme-toggle";
+// import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
 import { navItems } from "../constants";
+import { useAuth } from "@/features/auth/context/auth-context";
 import Image from "next/image";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("common");
+  const tAuth = useTranslations("auth");
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
+  // Redirect to login if not authenticated (e.g. token expired)
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -33,14 +63,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-          <div className="h-8 w-8 flex items-center justify-center">
-            <Image src="/logo.png" alt="NadbaOTP Logo" width={32} height={32} />
-          </div>
-          {!collapsed && (
-            <span className="font-bold text-lg text-foreground tracking-tight">
-              Nadba OTP
-            </span>
-          )}
+          <a
+            href="https://www.nabdaotp.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3"
+          >
+            <div className="h-12 w-12 flex items-center justify-center">
+              <Image
+                src="/logo.png"
+                alt="Nadba OTP Logo"
+                width={48}
+                height={48}
+              />
+            </div>
+            {!collapsed && (
+              <span className="font-bold text-lg text-foreground tracking-tight">
+                Nadba OTP
+              </span>
+            )}
+          </a>
         </div>
 
         {/* Nav */}
@@ -88,20 +130,29 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 md:px-6 shrink-0">
           <div className="md:hidden flex items-center gap-2">
-            <div className="h-8 w-8 flex items-center justify-center">
-              <Image
-                src="/logo.png"
-                alt="NadbaOTP Logo"
-                width={32}
-                height={32}
-              />
-            </div>
-            <span className="font-bold text-lg text-foreground">Nadba OTP</span>
+            <a
+              href="https://www.nabdaotp.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2"
+            >
+              <div className="h-12 w-12 flex items-center justify-center">
+                <Image
+                  src="/logo.png"
+                  alt="Nadba OTP Logo"
+                  width={48}
+                  height={48}
+                />
+              </div>
+              <span className="font-bold text-lg text-foreground">
+                Nadba OTP
+              </span>
+            </a>
           </div>
           <div className="hidden md:block" />
 
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <LanguageSwitcher />
 
             <DropdownMenu>
@@ -111,19 +162,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     <User className="h-4 w-4 text-primary" />
                   </div>
                   <span className="hidden sm:inline text-sm font-medium text-foreground">
-                    Admin
+                    {user?.name || "User"}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
-                <DropdownMenuItem className="text-muted-foreground">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
+                <DropdownMenuItem
+                  className="text-muted-foreground cursor-pointer"
+                  onClick={() => router.push("/settings")}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t("nav.settings")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem
+                  className="text-destructive cursor-pointer"
+                  onClick={handleLogout}
+                >
                   <LogOut className="mr-2 h-4 w-4" />
-                  {t("nav.logout")}
+                  {tAuth("logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

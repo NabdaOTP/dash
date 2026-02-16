@@ -1,0 +1,37 @@
+{
+  "title": "Settings",
+  "subtitle": "Manage your account settings",
+  "profile": {
+    "title": "Profile",
+    "name": "Full Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "success": "Profile updated successfully"
+  },
+  "password": {
+    "title": "Change Password",
+    "current": "Current Password",
+    "new": "New Password",
+    "confirm": "Confirm New Password",
+    "hint": "Minimum 8 characters",
+    "mismatch": "Passwords do not match",
+    "save": "Change Password",
+    "saving": "Changing...",
+    "success": "Password changed successfully"
+  },
+  "twoFactor": {
+    "title": "Two-Factor Authentication",
+    "enabled": "2FA is enabled",
+    "disabled": "2FA is disabled",
+    "enable": "Enable 2FA",
+    "disable": "Disable 2FA",
+    "confirmCode": "Enter the 6-digit code sent to your email",
+    "code": "Verification Code",
+    "confirm": "Confirm",
+    "confirming": "Confirming...",
+    "enableSuccess": "2FA enabled successfully",
+    "disableSuccess": "2FA disabled successfully"
+  }
+}
