@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 // import { ThemeToggle } from "@/features/layout/components/theme-toggle";
+import { LanguageSwitcher } from "@/features/layout/components/language-switcher";
 import { useAuth } from "@/features/auth/context/auth-context";
 import { ApiError } from "@/lib/api-client";
 
@@ -64,6 +65,10 @@ export function VerifyOtpForm() {
             Nadba OTP
           </span>
         </a>
+        <div className="flex items-center gap-2">
+          {/* <ThemeToggle /> */}
+          <LanguageSwitcher />
+        </div>
       </div>
 
       {/* Main */}
