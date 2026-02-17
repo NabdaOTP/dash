@@ -70,13 +70,13 @@ export function SignUpForm() {
           <div className="h-14 w-14 flex items-center justify-center">
             <Image
               src="/logo.png"
-              alt="Nadba OTP Logo"
-              width={54}
-              height={54}
+              alt="Nabda OTP Logo"
+              width={50}
+              height={50}
             />
           </div>
           <span className="font-bold text-xl text-foreground tracking-tight">
-            Nadba OTP
+            Nabda OTP
           </span>
         </a>
         <div className="flex items-center gap-2">

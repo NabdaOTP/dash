@@ -72,14 +72,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="h-12 w-12 flex items-center justify-center">
               <Image
                 src="/logo.png"
-                alt="Nadba OTP Logo"
-                width={48}
-                height={48}
+                alt="Nabda OTP Logo"
+                width={50}
+                height={50}
               />
             </div>
             {!collapsed && (
               <span className="font-bold text-lg text-foreground tracking-tight">
-                Nadba OTP
+                Nabda OTP
               </span>
             )}
           </a>
@@ -139,13 +139,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="h-12 w-12 flex items-center justify-center">
                 <Image
                   src="/logo.png"
-                  alt="Nadba OTP Logo"
-                  width={48}
-                  height={48}
+                  alt="Nabda OTP Logo"
+                  width={50}
+                  height={50}
                 />
               </div>
               <span className="font-bold text-lg text-foreground">
-                Nadba OTP
+                Nabda OTP
               </span>
             </a>
           </div>

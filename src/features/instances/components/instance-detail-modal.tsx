@@ -18,7 +18,7 @@ const codeSnippets = [
     language: "Python",
     code: `import requests
 
-url = "https://api.nadbaotp.com/v1/otp/send"
+url = "https://api.nabdaotp.com/v1/otp/send"
 headers = {
     "Authorization": "Bearer YOUR_API_KEY",
     "Content-Type": "application/json"
@@ -36,7 +36,7 @@ print(response.json())`,
     code: `const axios = require('axios');
 
 const response = await axios.post(
-  'https://api.nadbaotp.com/v1/otp/send',
+  'https://api.nabdaotp.com/v1/otp/send',
   {
     phone: '+966501234567',
     template: 'Your OTP is {{code}}'
@@ -53,7 +53,7 @@ console.log(response.data);`,
   },
   {
     language: "cURL",
-    code: `curl -X POST https://api.nadbaotp.com/v1/otp/send \\
+    code: `curl -X POST https://api.nabdaotp.com/v1/otp/send \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{

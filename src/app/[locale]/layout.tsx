@@ -27,7 +27,7 @@ const alexandria = Alexandria({
 });
 
 export const metadata: Metadata = {
-  title: "Nadba OTP",
+  title: "Nabda OTP",
   description: "WhatsApp OTP Service Dashboard",
   icons: {
     icon: "/favicon.ico",
