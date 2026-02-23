@@ -21,7 +21,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
       instance.status === "fulfilled" ? instance.value.name : "—",
     whatsappConnected:
       whatsappStatus.status === "fulfilled"
-        ? whatsappStatus.value.connected
+        ? whatsappStatus.value.status === "connected"
         : false,
     whatsappPhone:
       whatsappStatus.status === "fulfilled"

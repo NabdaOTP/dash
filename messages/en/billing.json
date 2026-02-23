@@ -6,22 +6,39 @@
     "current": "Current Plan",
     "subscribe": "Subscribe",
     "subscribing": "Subscribing...",
+    "subscribed": "Subscribed",
     "startTrial": "Start Free Trial",
     "startingTrial": "Starting...",
+    "trialStarted": "Trial Active",
     "free": "Free"
   },
   "subscription": {
+    "title": "Subscription Management",
     "autoRenew": "Auto-Renewal",
-    "autoRenewOn": "Auto-renewal is enabled",
-    "autoRenewOff": "Auto-renewal is disabled",
+    "autoRenewOn": "Your subscription will renew automatically",
+    "autoRenewOff": "Your subscription will not renew automatically",
     "enable": "Enable",
-    "disable": "Disable"
+    "disable": "Disable",
+    "extendTrial": "Extend Trial",
+    "extendingTrial": "Extending...",
+    "extendTrialDesc": "Extend your current trial period"
   },
   "invoices": {
     "title": "Invoices",
     "amount": "Amount",
     "status": "Status",
     "date": "Date",
+    "download": "Download",
     "noInvoices": "No invoices yet"
+  },
+  "checkout": {
+    "redirecting": "Redirecting to checkout...",
+    "success": "Payment Successful",
+    "successDesc": "Your subscription has been activated. Thank you!",
+    "cancelled": "Payment Cancelled",
+    "cancelledDesc": "You cancelled the checkout. Your plan has not changed.",
+    "goToBilling": "Go to Billing",
+    "goToDashboard": "Go to Dashboard",
+    "backToBilling": "Back to Billing"
   }
 }

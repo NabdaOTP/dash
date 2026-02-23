@@ -10,8 +10,3 @@ export interface Instance {
   otpVerified?: number;
 }
 
-export interface CreateInstanceResponse {
-  id: string;
-  name: string;
-  apiKey: string;
-}

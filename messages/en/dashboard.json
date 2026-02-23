@@ -7,6 +7,8 @@
   "connected": "Connected",
   "disconnected": "Disconnected",
   "connect": "Connect",
+  "connecting": "Connecting...",
+  "cancelConnect": "Cancel",
   "disconnect": "Disconnect",
   "sessionExpires": "Session expires in",
   "currentInstance": "Current Instance",

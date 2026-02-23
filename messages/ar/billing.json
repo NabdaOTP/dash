@@ -6,22 +6,39 @@
     "current": "الخطة الحالية",
     "subscribe": "اشتراك",
     "subscribing": "جاري الاشتراك...",
+    "subscribed": "مشترك",
     "startTrial": "بدء الفترة التجريبية",
     "startingTrial": "جاري البدء...",
+    "trialStarted": "الفترة التجريبية نشطة",
     "free": "مجاني"
   },
   "subscription": {
+    "title": "إدارة الاشتراك",
     "autoRenew": "التجديد التلقائي",
-    "autoRenewOn": "التجديد التلقائي مفعل",
-    "autoRenewOff": "التجديد التلقائي معطل",
+    "autoRenewOn": "سيتجدد اشتراكك تلقائياً",
+    "autoRenewOff": "لن يتجدد اشتراكك تلقائياً",
     "enable": "تفعيل",
-    "disable": "تعطيل"
+    "disable": "تعطيل",
+    "extendTrial": "تمديد الفترة التجريبية",
+    "extendingTrial": "جاري التمديد...",
+    "extendTrialDesc": "تمديد فترتك التجريبية الحالية"
   },
   "invoices": {
     "title": "الفواتير",
     "amount": "المبلغ",
     "status": "الحالة",
     "date": "التاريخ",
+    "download": "تحميل",
     "noInvoices": "لا توجد فواتير بعد"
+  },
+  "checkout": {
+    "redirecting": "جاري التحويل إلى الدفع...",
+    "success": "تمت عملية الدفع بنجاح",
+    "successDesc": "تم تفعيل اشتراكك. شكراً لك!",
+    "cancelled": "تم إلغاء الدفع",
+    "cancelledDesc": "لقد ألغيت عملية الدفع. لم تتغير خطتك.",
+    "goToBilling": "الذهاب إلى الفوترة",
+    "goToDashboard": "الذهاب إلى لوحة التحكم",
+    "backToBilling": "العودة إلى الفوترة"
   }
 }

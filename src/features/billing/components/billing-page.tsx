@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { CreditCard, FileText, Loader2, ToggleLeft, ToggleRight } from "lucide-react";
+import {
+  CreditCard,
+  FileText,
+  Loader2,
+  ToggleLeft,
+  ToggleRight,
+  Download,
+  CalendarClock,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,9 +30,15 @@ export function BillingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState<string | null>(null);
+  // Separate loading states per action
+  const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(null);
+  const [trialPlanId, setTrialPlanId] = useState<string | null>(null);
+  const [extendingTrial, setExtendingTrial] = useState(false);
   const [autoRenew, setAutoRenew] = useState(false);
   const [togglingAutoRenew, setTogglingAutoRenew] = useState(false);
+  // Track successful actions for visual feedback
+  const [subscribedPlanId, setSubscribedPlanId] = useState<string | null>(null);
+  const [trialActivePlanId, setTrialActivePlanId] = useState<string | null>(null);
   const t = useTranslations("billing");
 
   useEffect(() => {
@@ -33,17 +48,14 @@ export function BillingPage() {
           billingService.getPlans(),
           billingService.getInvoices(),
         ]);
-        if (plansData.status === "fulfilled") {
-          const result = plansData.value;
-          setPlans(Array.isArray(result) ? result : [result]);
-        }
+        if (plansData.status === "fulfilled") setPlans(plansData.value);
         if (invoicesData.status === "fulfilled") {
           setInvoices(
             Array.isArray(invoicesData.value) ? invoicesData.value : []
           );
         }
       } catch {
-        // handled
+        // handled by API client
       } finally {
         setLoading(false);
       }
@@ -52,24 +64,47 @@ export function BillingPage() {
   }, []);
 
   const handleSubscribe = async (planId: string) => {
-    setSubscribing(planId);
+    setSubscribingPlanId(planId);
     try {
-      await billingService.subscribe(planId);
+      const result = await billingService.subscribe(planId);
+      if (result?.url) {
+        window.location.href = result.url;
+        return; // keep loading state active during redirect
+      }
+      setSubscribedPlanId(planId);
+      setTrialActivePlanId(null);
     } catch {
       // handled
     } finally {
-      setSubscribing(null);
+      setSubscribingPlanId((prev) => (prev === planId ? null : prev));
     }
   };
 
   const handleStartTrial = async (planId: string) => {
-    setSubscribing(planId);
+    setTrialPlanId(planId);
     try {
-      await billingService.startTrial(planId);
+      const result = await billingService.startTrial(planId);
+      if (result?.url) {
+        window.location.href = result.url;
+        return; // keep loading state active during redirect
+      }
+      setTrialActivePlanId(planId);
+      setSubscribedPlanId(null);
     } catch {
       // handled
     } finally {
-      setSubscribing(null);
+      setTrialPlanId((prev) => (prev === planId ? null : prev));
+    }
+  };
+
+  const handleExtendTrial = async () => {
+    setExtendingTrial(true);
+    try {
+      await billingService.extendTrial();
+    } catch {
+      // handled
+    } finally {
+      setExtendingTrial(false);
     }
   };
 
@@ -101,94 +136,177 @@ export function BillingPage() {
       </div>
 
       {/* Plans */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-primary" />
-          {t("plans.title")}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className="bg-card rounded-xl border border-border p-6 space-y-4"
-            >
-              <div>
-                <h3 className="font-semibold text-foreground text-lg">{plan.name}</h3>
-                <p className="text-2xl font-bold text-primary mt-1">
-                  {plan.price > 0 ? `$${plan.price}` : t("plans.free")}
-                </p>
-              </div>
-              {plan.features && (
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-success mt-0.5">&#10003;</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleSubscribe(plan.id)}
-                  disabled={subscribing === plan.id}
-                  className="flex-1 gradient-primary text-primary-foreground"
-                  size="sm"
+      {plans.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            {t("plans.title")}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {plans.map((plan) => {
+              const isSubscribed = subscribedPlanId === plan.id;
+              const isTrialActive = trialActivePlanId === plan.id;
+              const isSubscribing = subscribingPlanId === plan.id;
+              const isStartingTrial = trialPlanId === plan.id;
+              const isBusy = isSubscribing || isStartingTrial;
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`bg-card rounded-xl border p-6 space-y-4 transition-colors ${
+                    isSubscribed || isTrialActive
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border"
+                  }`}
                 >
-                  {subscribing === plan.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    t("plans.subscribe")
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold text-foreground text-lg">
+                        {plan.name ?? t("plans.title")}
+                      </h3>
+                      <p className="text-2xl font-bold text-primary mt-1">
+                        {plan.price != null
+                          ? plan.price > 0
+                            ? `$${plan.price}`
+                            : t("plans.free")
+                          : "—"}
+                      </p>
+                    </div>
+                    {isSubscribed && (
+                      <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0">
+                        <CheckCircle2 className="h-3 w-3 me-1" />
+                        {t("plans.subscribed")}
+                      </Badge>
+                    )}
+                    {isTrialActive && (
+                      <Badge className="bg-success/10 text-success border-success/20 shrink-0">
+                        <CheckCircle2 className="h-3 w-3 me-1" />
+                        {t("plans.trialStarted")}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {plan.features && plan.features.length > 0 && (
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {plan.features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="text-success mt-0.5">&#10003;</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </Button>
-                <Button
-                  onClick={() => handleStartTrial(plan.id)}
-                  disabled={subscribing === plan.id}
-                  variant="outline"
-                  size="sm"
-                >
-                  {t("plans.startTrial")}
-                </Button>
-              </div>
-            </div>
-          ))}
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleSubscribe(plan.id)}
+                      disabled={isBusy || isSubscribed}
+                      className="flex-1 gradient-primary text-primary-foreground"
+                      size="sm"
+                    >
+                      {isSubscribing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin me-1.5" />
+                          {t("checkout.redirecting")}
+                        </>
+                      ) : (
+                        t("plans.subscribe")
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => handleStartTrial(plan.id)}
+                      disabled={isBusy || isTrialActive}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {isStartingTrial ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin me-1.5" />
+                          {t("plans.startingTrial")}
+                        </>
+                      ) : (
+                        t("plans.startTrial")
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <Separator />
 
-      {/* Auto-Renewal */}
-      <div className="bg-card rounded-xl border border-border p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {autoRenew ? (
-              <ToggleRight className="h-6 w-6 text-success" />
-            ) : (
-              <ToggleLeft className="h-6 w-6 text-muted-foreground" />
-            )}
+      {/* Subscription Management */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <CalendarClock className="h-5 w-5 text-primary" />
+          {t("subscription.title")}
+        </h2>
+
+        <div className="bg-card rounded-xl border border-border divide-y divide-border">
+          {/* Auto-Renewal */}
+          <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+              {autoRenew ? (
+                <ToggleRight className="h-6 w-6 text-success shrink-0" />
+              ) : (
+                <ToggleLeft className="h-6 w-6 text-muted-foreground shrink-0" />
+              )}
+              <div>
+                <h3 className="font-semibold text-foreground text-sm">
+                  {t("subscription.autoRenew")}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {autoRenew
+                    ? t("subscription.autoRenewOn")
+                    : t("subscription.autoRenewOff")}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggleAutoRenew}
+              disabled={togglingAutoRenew}
+            >
+              {togglingAutoRenew ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : autoRenew ? (
+                t("subscription.disable")
+              ) : (
+                t("subscription.enable")
+              )}
+            </Button>
+          </div>
+
+          {/* Extend Trial */}
+          <div className="flex items-center justify-between p-5">
             <div>
-              <h3 className="font-semibold text-foreground">{t("subscription.autoRenew")}</h3>
-              <p className="text-sm text-muted-foreground">
-                {autoRenew
-                  ? t("subscription.autoRenewOn")
-                  : t("subscription.autoRenewOff")}
+              <h3 className="font-semibold text-foreground text-sm">
+                {t("subscription.extendTrial")}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t("subscription.extendTrialDesc")}
               </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExtendTrial}
+              disabled={extendingTrial}
+            >
+              {extendingTrial ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin me-1.5" />
+                  {t("subscription.extendingTrial")}
+                </>
+              ) : (
+                t("subscription.extendTrial")
+              )}
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleToggleAutoRenew}
-            disabled={togglingAutoRenew}
-          >
-            {togglingAutoRenew ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : autoRenew ? (
-              t("subscription.disable")
-            ) : (
-              t("subscription.enable")
-            )}
-          </Button>
         </div>
       </div>
 
@@ -214,6 +332,7 @@ export function BillingPage() {
                   <TableHead className="font-semibold">{t("invoices.amount")}</TableHead>
                   <TableHead className="font-semibold">{t("invoices.status")}</TableHead>
                   <TableHead className="font-semibold">{t("invoices.date")}</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -229,6 +348,19 @@ export function BillingPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {inv.createdAt}
+                    </TableCell>
+                    <TableCell className="text-end">
+                      {inv.pdfUrl && (
+                        <a
+                          href={inv.pdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          {t("invoices.download")}
+                        </a>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

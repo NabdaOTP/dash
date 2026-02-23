@@ -231,6 +231,7 @@ export function InstancesPage() {
       <InstanceDetailModal
         instance={selectedInstance}
         onClose={() => setSelectedInstance(null)}
+        onRotated={fetchInstances}
       />
 
       {/* Edit Dialog */}

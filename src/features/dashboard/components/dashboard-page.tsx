@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import {
@@ -17,12 +17,23 @@ import { Button } from "@/components/ui/button";
 import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
 import * as whatsappService from "@/features/whatsapp/services/whatsapp-service";
 
+type WaStep = "idle" | "connecting" | "awaiting_scan";
+
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [connectingWa, setConnectingWa] = useState(false);
+  const [waStep, setWaStep] = useState<WaStep>("idle");
+  const [qrCode, setQrCode] = useState<string | null>(null);
   const [disconnectingWa, setDisconnectingWa] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const t = useTranslations("dashboard");
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -37,18 +48,50 @@ export function DashboardPage() {
 
   useEffect(() => {
     fetchData();
+    return () => stopPolling();
   }, []);
 
   const handleConnectWhatsApp = async () => {
-    setConnectingWa(true);
+    setWaStep("connecting");
     try {
       await whatsappService.connect();
-      await fetchData();
     } catch {
-      // handled
-    } finally {
-      setConnectingWa(false);
+      setWaStep("idle");
+      return;
     }
+
+    setWaStep("awaiting_scan");
+
+    const poll = async () => {
+      try {
+        const status = await whatsappService.getStatus();
+        if (status.status === "connected") {
+          stopPolling();
+          setWaStep("idle");
+          setQrCode(null);
+          setLoading(true);
+          await fetchData();
+          return;
+        }
+      } catch {
+        // continue polling
+      }
+      try {
+        const qrData = await whatsappService.getQrCode();
+        if (qrData.qr) setQrCode(qrData.qr);
+      } catch {
+        // QR not ready yet, continue polling
+      }
+    };
+
+    poll();
+    pollRef.current = setInterval(poll, 3000);
+  };
+
+  const handleCancelConnect = () => {
+    stopPolling();
+    setWaStep("idle");
+    setQrCode(null);
   };
 
   const handleDisconnectWhatsApp = async () => {
@@ -96,51 +139,77 @@ export function DashboardPage() {
 
         {/* WhatsApp Status */}
         <div className="bg-card rounded-xl border border-border p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                  stats?.whatsappConnected
-                    ? "bg-success/10"
-                    : "bg-muted"
-                }`}
-              >
-                {stats?.whatsappConnected ? (
-                  <Wifi className="h-5 w-5 text-success" />
-                ) : (
-                  <WifiOff className="h-5 w-5 text-muted-foreground" />
-                )}
+          {waStep === "awaiting_scan" ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">{t("connectWhatsApp")}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelConnect}
+                  className="text-xs text-muted-foreground"
+                >
+                  {t("cancelConnect")}
+                </Button>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">WhatsApp</p>
-                <p className="font-semibold text-foreground">
-                  {stats?.whatsappConnected ? t("connected") : t("disconnected")}
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">{t("scanQR")}</p>
+              {qrCode ? (
+                <img
+                  src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
+                  alt="WhatsApp QR Code"
+                  className="w-44 h-44 rounded-lg border border-border"
+                />
+              ) : (
+                <div className="w-44 h-44 rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
-            {stats?.whatsappConnected ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDisconnectWhatsApp}
-                disabled={disconnectingWa}
-                className="text-xs text-destructive"
-              >
-                {disconnectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("disconnect")}
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleConnectWhatsApp}
-                disabled={connectingWa}
-                className="text-xs text-primary"
-              >
-                {connectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("connect")}
-              </Button>
-            )}
-          </div>
-          {stats?.whatsappPhone && (
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                    stats?.whatsappConnected ? "bg-success/10" : "bg-muted"
+                  }`}
+                >
+                  {stats?.whatsappConnected ? (
+                    <Wifi className="h-5 w-5 text-success" />
+                  ) : (
+                    <WifiOff className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">WhatsApp</p>
+                  <p className="font-semibold text-foreground">
+                    {stats?.whatsappConnected ? t("connected") : t("disconnected")}
+                  </p>
+                </div>
+              </div>
+              {stats?.whatsappConnected ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDisconnectWhatsApp}
+                  disabled={disconnectingWa}
+                  className="text-xs text-destructive"
+                >
+                  {disconnectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("disconnect")}
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleConnectWhatsApp}
+                  disabled={waStep === "connecting"}
+                  className="text-xs text-primary"
+                >
+                  {waStep === "connecting" ? <Loader2 className="h-3 w-3 animate-spin" /> : t("connect")}
+                </Button>
+              )}
+            </div>
+          )}
+          {waStep === "idle" && stats?.whatsappPhone && (
             <p className="text-xs text-muted-foreground">{stats.whatsappPhone}</p>
           )}
         </div>

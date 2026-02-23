@@ -1,7 +1,7 @@
 export interface WhatsAppStatus {
-  connected: boolean;
+  status: "connected" | "disconnected" | "connecting" | "qr_ready";
   phone?: string;
-  sessionExpiresIn?: string;
+  connectedAt?: string;
 }
 
 export interface WhatsAppQrResponse {

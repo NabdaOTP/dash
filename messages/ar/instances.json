@@ -13,6 +13,9 @@
   "otpSent": "OTP المرسلة",
   "otpVerified": "OTP المتحققة",
   "integrationCode": "كود التكامل",
+  "rotateApiKey": "تجديد مفتاح API",
+  "rotateApiKeyWarning": "سيؤدي هذا إلى إلغاء مفتاح API الحالي. تأكيد؟",
+  "confirmRotate": "نعم، جدّد",
   "noInstances": "ليس لديك أي نسخ بعد. أنشئ نسختك الأولى!",
   "noResults": "لا توجد نسخ تطابق بحثك."
 }

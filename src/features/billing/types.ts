@@ -14,11 +14,3 @@ export interface Invoice {
   pdfUrl?: string;
 }
 
-export interface Subscription {
-  planId: string;
-  planName: string;
-  status: string;
-  autoRenew: boolean;
-  trialEnd?: string;
-  currentPeriodEnd?: string;
-}

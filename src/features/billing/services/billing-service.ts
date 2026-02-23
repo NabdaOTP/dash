@@ -2,15 +2,16 @@ import { api } from "@/lib/api-client";
 import type { Plan, Invoice } from "../types";
 
 export async function getPlans(): Promise<Plan[]> {
-  return api.get<Plan[]>("/api/v1/plans");
+  const result = await api.get<Plan | Plan[]>("/api/v1/plans");
+  return Array.isArray(result) ? result : [result];
 }
 
-export async function subscribe(planId: string): Promise<void> {
-  return api.post<void>("/api/v1/subscriptions/subscribe", { planId });
+export async function subscribe(planId: string): Promise<{ url?: string }> {
+  return api.post<{ url?: string }>("/api/v1/subscriptions/subscribe", { planId });
 }
 
-export async function startTrial(planId: string): Promise<void> {
-  return api.post<void>("/api/v1/subscriptions/trial/start", { planId });
+export async function startTrial(planId: string): Promise<{ url?: string }> {
+  return api.post<{ url?: string }>("/api/v1/subscriptions/trial/start", { planId });
 }
 
 export async function extendTrial(): Promise<void> {

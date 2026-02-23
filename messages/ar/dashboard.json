@@ -7,6 +7,8 @@
   "connected": "متصل",
   "disconnected": "غير متصل",
   "connect": "اتصال",
+  "connecting": "جاري الاتصال...",
+  "cancelConnect": "إلغاء",
   "disconnect": "قطع الاتصال",
   "sessionExpires": "تنتهي الجلسة خلال",
   "currentInstance": "النسخة الحالية",

@@ -13,6 +13,9 @@
   "otpSent": "OTP Sent",
   "otpVerified": "OTP Verified",
   "integrationCode": "Integration Code",
+  "rotateApiKey": "Rotate API Key",
+  "rotateApiKeyWarning": "This will invalidate your current API key. Confirm?",
+  "confirmRotate": "Yes, Rotate",
   "noInstances": "You don't have any instances yet. Create your first one!",
   "noResults": "No instances match your search."
 }

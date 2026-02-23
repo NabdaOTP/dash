@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Server, Copy, Check } from "lucide-react";
+import { Server, Copy, Check, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,74 +11,98 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CodeSnippet } from "./code-snippet";
+import { rotateApiKey } from "../services/instances-service";
 import type { Instance } from "../types";
 
-const codeSnippets = [
-  {
-    language: "Python",
-    code: `import requests
+function buildCodeSnippets(apiKey: string) {
+  return [
+    {
+      language: "Python",
+      code: `import requests
 
-url = "https://api.nabdaotp.com/v1/otp/send"
+url = "https://api.nabdaotp.com/api/v1/messages/send"
 headers = {
-    "Authorization": "Bearer YOUR_API_KEY",
+    "Authorization": "${apiKey}",
     "Content-Type": "application/json"
 }
 data = {
-    "phone": "+966501234567",
-    "template": "Your OTP is {{code}}"
+    "phone": "+201012345678",
+    "message": "Your verification code is 123456"
 }
 
 response = requests.post(url, json=data, headers=headers)
 print(response.json())`,
-  },
+    },
+    {
+      language: "Node.js",
+      code: `const response = await fetch(
+  "https://api.nabdaotp.com/api/v1/messages/send",
   {
-    language: "Node.js",
-    code: `const axios = require('axios');
-
-const response = await axios.post(
-  'https://api.nabdaotp.com/v1/otp/send',
-  {
-    phone: '+966501234567',
-    template: 'Your OTP is {{code}}'
-  },
-  {
+    method: "POST",
     headers: {
-      'Authorization': 'Bearer YOUR_API_KEY',
-      'Content-Type': 'application/json'
-    }
+      "Authorization": "${apiKey}",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      phone: "+201012345678",
+      message: "Your verification code is 123456",
+    }),
   }
 );
 
-console.log(response.data);`,
-  },
-  {
-    language: "cURL",
-    code: `curl -X POST https://api.nabdaotp.com/v1/otp/send \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+const data = await response.json();`,
+    },
+    {
+      language: "cURL",
+      code: `curl -X POST https://api.nabdaotp.com/api/v1/messages/send \\
+  -H "Authorization: ${apiKey}" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "phone": "+966501234567",
-    "template": "Your OTP is {{code}}"
+    "phone": "+201012345678",
+    "message": "Your verification code is 123456"
   }'`,
-  },
-];
+    },
+  ];
+}
 
 interface InstanceDetailModalProps {
   instance: Instance | null;
   onClose: () => void;
+  onRotated?: () => void;
 }
 
 export function InstanceDetailModal({
   instance,
   onClose,
+  onRotated,
 }: InstanceDetailModalProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [currentApiKey, setCurrentApiKey] = useState<string | null>(null);
+  const [confirmRotate, setConfirmRotate] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const t = useTranslations("instances");
+  const tCommon = useTranslations("common");
+
+  const displayApiKey = currentApiKey ?? instance?.apiKey ?? "";
 
   const handleCopy = (value: string, field: string) => {
     navigator.clipboard.writeText(value);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleRotateApiKey = async () => {
+    setRotating(true);
+    setConfirmRotate(false);
+    try {
+      const result = await rotateApiKey();
+      setCurrentApiKey(result.apiKey);
+      onRotated?.();
+    } catch {
+      // handled by API client
+    } finally {
+      setRotating(false);
+    }
   };
 
   return (
@@ -102,7 +126,7 @@ export function InstanceDetailModal({
               </h3>
               {[
                 { label: "API ID", value: instance.apiId },
-                { label: "API Key", value: instance.apiKey },
+                { label: "API Key", value: displayApiKey },
                 { label: "Token", value: instance.token },
               ].map((field) => (
                 <div
@@ -131,6 +155,41 @@ export function InstanceDetailModal({
                   </Button>
                 </div>
               ))}
+
+              {/* Rotate API Key */}
+              {confirmRotate ? (
+                <div className="flex items-center gap-3 bg-warning/10 border border-warning/20 rounded-lg px-4 py-3">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                  <p className="text-sm text-foreground flex-1">{t("rotateApiKeyWarning")}</p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setConfirmRotate(false)}
+                    className="text-xs shrink-0"
+                  >
+                    {tCommon("actions.cancel")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleRotateApiKey}
+                    disabled={rotating}
+                    className="text-xs shrink-0 bg-warning/20 text-warning hover:bg-warning/30 border-0"
+                  >
+                    {rotating ? <Loader2 className="h-3 w-3 animate-spin" /> : t("confirmRotate")}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmRotate(true)}
+                  disabled={rotating}
+                  className="text-xs text-muted-foreground gap-2 w-full justify-start"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {t("rotateApiKey")}
+                </Button>
+              )}
             </div>
 
             {/* Usage Stats */}
@@ -163,7 +222,7 @@ export function InstanceDetailModal({
               <h3 className="text-sm font-semibold text-foreground">
                 {t("integrationCode")}
               </h3>
-              <CodeSnippet snippets={codeSnippets} />
+              <CodeSnippet snippets={buildCodeSnippets(displayApiKey)} />
             </div>
           </div>
         )}
