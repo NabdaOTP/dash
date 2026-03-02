@@ -1,11 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useTranslations } from "next-intl";
-import { Search, Plus, Eye, Pencil, Trash2, Server, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -14,15 +25,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { InstanceDetailModal } from "./instance-detail-modal";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { CreditCard, Eye, Loader2, MoreHorizontal, Pencil, Plus, Search, Server, Trash2 } from "lucide-react";
+import { useAuth } from "@/features/auth/context/auth-context";
+import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import * as instancesService from "../services/instances-service";
 import type { Instance } from "../types";
 
@@ -30,32 +40,43 @@ const statusStyles: Record<string, string> = {
   active: "bg-success/10 text-success border-success/20",
   inactive: "bg-muted text-muted-foreground border-border",
   error: "bg-destructive/10 text-destructive border-destructive/20",
+  "PAYMENT_PENDING": "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
 };
 
-function maskKey(key: string) {
+function maskKey(key: string | undefined) {
   if (!key || key.length < 12) return key || "—";
-  return key.slice(0, 12) + "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+  return key.slice(0, 8) + "..." + key.slice(-8);
 }
 
 export function InstancesPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
   const [creating, setCreating] = useState(false);
   const [editingInstance, setEditingInstance] = useState<Instance | null>(null);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+  const [creatingdia, setCreatingdia] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
+    key: 'createdAt',
+    direction: 'desc',
+  });
   const t = useTranslations("instances");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
+  const router = useRouter();
+  const { selectInstance } = useAuth();
 
   const fetchInstances = useCallback(async () => {
     try {
       const data = await instancesService.getMyInstances();
       setInstances(data);
-    } catch {
-      // Error handled by API client
+      console.log("Fetched instances:", data);
+    } catch (err: any) {
+      toast.error("Failed to load instances");
     } finally {
       setLoading(false);
     }
@@ -66,31 +87,38 @@ export function InstancesPage() {
   }, [fetchInstances]);
 
   const handleCreate = async () => {
+    setShowCreateConfirm(false);
     setCreating(true);
     try {
       await instancesService.createInstance();
+      setCreatingdia(true);
+      await new Promise(resolve => setTimeout(resolve, 2600));
       await fetchInstances();
-    } catch {
-      // Error handled by API client
+      toast.success(t("instanceCreated"));
+    } catch (err: any) {
+      toast.error("Failed to create instance");
     } finally {
       setCreating(false);
+      setCreatingdia(false);
     }
   };
 
   const handleEdit = (inst: Instance) => {
     setEditingInstance(inst);
-    setEditName(inst.name);
+    setEditName(inst.name || "");
   };
 
   const handleSaveEdit = async () => {
-    if (!editingInstance) return;
+    if (!editingInstance || !editName.trim()) return;
     setSaving(true);
     try {
+      await selectInstance({ instanceId: editingInstance.id });
       await instancesService.updateInstance(editingInstance.id, { name: editName });
       setEditingInstance(null);
       await fetchInstances();
-    } catch {
-      // Error handled by API client
+      toast.success("Instance name updated");
+    } catch (err: any) {
+      toast.error("Failed to update instance");
     } finally {
       setSaving(false);
     }
@@ -98,19 +126,43 @@ export function InstancesPage() {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
+    setDeleteConfirmId(null);
     try {
+      await selectInstance({ instanceId: id });
       await instancesService.deleteInstance(id);
       await fetchInstances();
-    } catch {
-      // Error handled by API client
+      toast.success("Instance deleted successfully");
+    } catch (err: any) {
+      if (err?.status === 403) {
+        toast.error("Cannot delete: Instance is in PAYMENT_PENDING or permission denied");
+      } else {
+        toast.error("Failed to delete instance");
+      }
     } finally {
       setDeletingId(null);
     }
   };
 
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const filtered = instances.filter((inst) =>
     inst.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const sortedInstances = [...filtered].sort((a, b) => {
+    if (sortConfig.key === 'createdAt') {
+      const aDate = new Date(a.createdAt).getTime();
+      const bDate = new Date(b.createdAt).getTime();
+      return sortConfig.direction === 'asc' ? aDate - bDate : bDate - aDate;
+    }
+    return 0;
+  });
 
   if (loading) {
     return (
@@ -128,7 +180,7 @@ export function InstancesPage() {
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <Button
-          onClick={handleCreate}
+          onClick={() => setShowCreateConfirm(true)}
           disabled={creating}
           className="gradient-primary text-primary-foreground gap-2 shrink-0"
         >
@@ -153,13 +205,11 @@ export function InstancesPage() {
       </div>
 
       {/* Table */}
-      {filtered.length === 0 ? (
+      {sortedInstances.length === 0 ? (
         <div className="bg-card rounded-xl border border-border p-12 text-center">
           <Server className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">
-            {instances.length === 0
-              ? t("noInstances")
-              : t("noResults")}
+            {instances.length === 0 ? t("noInstances") : t("noResults")}
           </p>
         </div>
       ) : (
@@ -169,26 +219,43 @@ export function InstancesPage() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="font-semibold">{t("name")}</TableHead>
+                  <TableHead
+                    className="font-semibold cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    {t("creatDate")}{" "}
+                    {sortConfig.key === 'createdAt' &&
+                      (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </TableHead>
+                  <TableHead className="font-semibold">{t("expireDate")}</TableHead>
                   <TableHead className="font-semibold">{t("status")}</TableHead>
                   <TableHead className="font-semibold">{t("apiKey")}</TableHead>
-                  <TableHead className="font-semibold">{t("created")}</TableHead>
                   <TableHead className="font-semibold text-end">{t("actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((inst) => (
-                  <TableRow key={inst.id} className="hover:bg-muted/20 transition-colors">
+                {sortedInstances.map((inst) => (
+                  <TableRow key={inst.id} className="hover:bg-muted/20">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                           <Server className="h-4 w-4 text-primary" />
                         </div>
-                        <span className="font-medium text-foreground">{inst.name}</span>
+                        <span className="font-medium">{inst.name}</span>
                       </div>
                     </TableCell>
+                    <TableCell>{new Date(inst.createdAt).toLocaleDateString(locale)}</TableCell>
+                    <TableCell>—</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] || ""}`}>
-                        {inst.status}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${statusStyles[inst.status] ||
+                          "bg-muted text-muted-foreground"
+                          }`}
+                      >
+                        {inst.status === "PAYMENT_PENDING"
+                          ? "Payment Pending"
+                          : inst.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -196,21 +263,29 @@ export function InstancesPage() {
                         {maskKey(inst.apiKey)}
                       </code>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{inst.createdAt}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInstance(inst)}>
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(inst)}>
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
+                    <TableCell className="text-end">
+                      <div className="flex items-center justify-end gap-1 flex-wrap">
+                        <Link href={`/${locale}/instances/${inst.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </Link>
+
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
+                          onClick={() => handleEdit(inst)}
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setDeleteConfirmId(inst.id)}
                           disabled={deletingId === inst.id}
-                          onClick={() => handleDelete(inst.id)}
                         >
                           {deletingId === inst.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -218,6 +293,36 @@ export function InstancesPage() {
                             <Trash2 className="h-4 w-4 text-destructive" />
                           )}
                         </Button>
+
+                        {inst.status === "PAYMENT_PENDING" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2"
+                            onClick={() =>
+                              router.push(`/billing/subscribe?instanceId=${inst.id}`)
+                            }
+                          >
+                            <CreditCard className="h-4 w-4" />
+                            Pay
+                          </Button>
+                        )}
+                        {inst.status === "active" && (<DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(`/${locale}/billing`)
+                              }
+                            >
+                              Manage Subscription
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>)}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -228,11 +333,48 @@ export function InstancesPage() {
         </div>
       )}
 
-      <InstanceDetailModal
-        instance={selectedInstance}
-        onClose={() => setSelectedInstance(null)}
-        onRotated={fetchInstances}
-      />
+      {/* Create Confirmation */}
+      <Dialog open={showCreateConfirm} onOpenChange={setShowCreateConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("create")}</DialogTitle>
+            <DialogDescription>{t("createInstanceConfirm")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreateConfirm(false)}
+              disabled={creating}
+            >
+              {tCommon("actions.cancel")}
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={creating}
+              className="gradient-primary text-primary-foreground"
+            >
+              {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("actionsConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Loading Dialog */}
+      <Dialog open={creatingdia} onOpenChange={setCreatingdia}>
+        <DialogContent className="bg-card max-w-md">
+          <div className="flex flex-col items-center py-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">{t("progressLoadinTitle")}</p>
+            <p className="text-sm text-muted-foreground mt-2 text-center">
+              {t("progressLoadinSub")}
+            </p>
+            <div className="w-full bg-muted h-2 rounded mt-6 overflow-hidden">
+              <div className="bg-primary h-2 w-3/4 animate-[loading_2.5s_linear_forwards]"></div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingInstance} onOpenChange={() => setEditingInstance(null)}>
@@ -252,7 +394,11 @@ export function InstancesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditingInstance(null)} disabled={saving}>
+            <Button
+              variant="ghost"
+              onClick={() => setEditingInstance(null)}
+              disabled={saving}
+            >
               {tCommon("actions.cancel")}
             </Button>
             <Button
@@ -260,7 +406,35 @@ export function InstancesPage() {
               disabled={saving || !editName.trim()}
               className="gradient-primary text-primary-foreground"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : tCommon("actions.save")}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                tCommon("actions.save")
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("deleteInstance")}</DialogTitle>
+            <DialogDescription>{t("deleteInstanceMsg")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+              {t("deleteInstanceCancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!deleteConfirmId) return;
+                await handleDelete(deleteConfirmId);
+              }}
+            >
+              {t("deleteInstanceConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,5 +1,7 @@
 import { api } from "@/lib/api-client";
-import type { MessagesResponse } from "../types";
+import type { MessagesResponse, SendMessageRequest } from "../types";
+
+const instanceScope = { tokenScope: "instance" as const };
 
 export async function getMessages(params?: {
   status?: string;
@@ -13,6 +15,12 @@ export async function getMessages(params?: {
 
   const query = searchParams.toString();
   return api.get<MessagesResponse>(
-    `/api/v1/messages${query ? `?${query}` : ""}`
+    `/api/v1/messages${query ? `?${query}` : ""}`,
   );
 }
+
+
+export async function sendMessage(body: SendMessageRequest): Promise<void> {
+  await api.post<void>("/api/v1/messages/send", body, instanceScope);
+}
+

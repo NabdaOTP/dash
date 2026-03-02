@@ -7,6 +7,7 @@ import type {
   SelectInstanceRequest,
   RequestResetRequest,
   ResetPasswordRequest,
+  SelectInstanceResponse,
 } from "../types";
 
 export interface LoginResponse {
@@ -30,8 +31,12 @@ export async function verifyOtp(data: VerifyOtpRequest): Promise<LoginResponse> 
   return api.post<LoginResponse>("/api/v1/auth/verify-otp", data);
 }
 
-export async function selectInstance(data: SelectInstanceRequest): Promise<void> {
-  return api.post<void>("/api/v1/auth/select-instance", data);
+// export async function selectInstance(data: SelectInstanceRequest): Promise<void> {
+//   return api.post<void>("/api/v1/auth/select-instance", data);
+// }
+
+export async function selectInstance(data: SelectInstanceRequest): Promise<SelectInstanceResponse> {
+  return api.post<SelectInstanceResponse>("/api/v1/auth/select-instance", data);
 }
 
 export async function logout(): Promise<void> {

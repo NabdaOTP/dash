@@ -1,16 +1,18 @@
 import { api } from "@/lib/api-client";
 import type { Instance } from "../types";
 
+const instanceScope = { tokenScope: "instance" as const };
+
 export async function getMyInstances(): Promise<Instance[]> {
   return api.get<Instance[]>("/api/v1/instances/me");
 }
 
 export async function getCurrentInstance(): Promise<Instance> {
-  return api.get<Instance>("/api/v1/instances/me/current");
+  return api.get<Instance>("/api/v1/instances/me/current", instanceScope);
 }
 
 export async function getInstance(id: string): Promise<Instance> {
-  return api.get<Instance>(`/api/v1/instances/${id}`);
+  return api.get<Instance>(`/api/v1/instances/${id}`, instanceScope);
 }
 
 export async function createInstance(): Promise<Instance> {
@@ -21,13 +23,13 @@ export async function updateInstance(
   id: string,
   data: { name: string }
 ): Promise<Instance> {
-  return api.put<Instance>(`/api/v1/instances/${id}`, data);
+  return api.put<Instance>(`/api/v1/instances/${id}`, data, instanceScope);
 }
 
 export async function deleteInstance(id: string): Promise<void> {
-  return api.delete<void>(`/api/v1/instances/${id}`);
+  return api.delete<void>(`/api/v1/instances/${id}`, instanceScope);
 }
 
 export async function rotateApiKey(): Promise<{ apiKey: string }> {
-  return api.post<{ apiKey: string }>("/api/v1/api-keys/rotate");
+  return api.post<{ apiKey: string }>("/api/v1/api-keys/rotate", undefined, instanceScope);
 }

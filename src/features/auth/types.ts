@@ -44,6 +44,15 @@ export interface SelectInstanceRequest {
   instanceId: string;
 }
 
+export interface SelectInstanceResponse {
+  accessToken: string;
+  instance: {
+    id: string;
+    name: string;
+    createdAt: string;
+  };
+}
+
 export interface RequestResetRequest {
   email: string;
 }

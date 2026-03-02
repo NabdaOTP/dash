@@ -17,5 +17,17 @@
   "rotateApiKeyWarning": "سيؤدي هذا إلى إلغاء مفتاح API الحالي. تأكيد؟",
   "confirmRotate": "نعم، جدّد",
   "noInstances": "ليس لديك أي نسخ بعد. أنشئ نسختك الأولى!",
-  "noResults": "لا توجد نسخ تطابق بحثك."
+  "noResults": "لا توجد نسخ تطابق بحثك.",
+  "createInstanceConfirm": "هل أنت متأكد؟",
+  "actions.cancel": "إلغاء",
+  "actionsConfirm": "تأكيد",
+  "instanceCreated": "تم إنشاء العنصر بنجاح ☑️",
+  "creatDate":"تاريخ الانشاء",
+  "expireDate": "تاريخ الانتهاء",
+  "progressLoadinTitle": "يتم الآن تجهيز نسختك",
+  "progressLoadinSub": "قد تستغرق العملية بضع دقائق، يرجى الانتظار",
+  "deleteInstance": "حذف النسخة",
+  "deleteInstanceMsg": "هل أنت متأكد أنك تريد حذف هذه النسخة؟ لا يمكن التراجع عن هذا الإجراء",
+  "deleteInstanceCancel": "إلغاء",
+  "deleteInstanceConfirm": "نعم، حذف"
 }

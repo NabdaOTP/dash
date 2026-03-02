@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   CreditCard,
@@ -11,6 +12,7 @@ import {
   Download,
   CalendarClock,
   CheckCircle2,
+  Server,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Link } from "@/i18n/navigation";
+import { toast } from "sonner";
 import * as billingService from "../services/billing-service";
 import type { Plan, Invoice } from "../types";
 
@@ -39,6 +43,9 @@ export function BillingPage() {
   // Track successful actions for visual feedback
   const [subscribedPlanId, setSubscribedPlanId] = useState<string | null>(null);
   const [trialActivePlanId, setTrialActivePlanId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const paymentSuccess = searchParams.get("payment") === "success";
+  const successPlanId = searchParams.get("planId");
   const t = useTranslations("billing");
 
   useEffect(() => {
@@ -67,14 +74,16 @@ export function BillingPage() {
     setSubscribingPlanId(planId);
     try {
       const result = await billingService.subscribe(planId);
-      if (result?.url) {
-        window.location.href = result.url;
-        return; // keep loading state active during redirect
+      const url = result?.url ?? result?.checkoutUrl;
+      if (url) {
+        window.location.href = url;
+        return;
       }
       setSubscribedPlanId(planId);
       setTrialActivePlanId(null);
-    } catch {
-      // handled
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to start checkout";
+      toast.error(message);
     } finally {
       setSubscribingPlanId((prev) => (prev === planId ? null : prev));
     }
@@ -84,14 +93,16 @@ export function BillingPage() {
     setTrialPlanId(planId);
     try {
       const result = await billingService.startTrial(planId);
-      if (result?.url) {
-        window.location.href = result.url;
-        return; // keep loading state active during redirect
+      const url = result?.url;
+      if (url) {
+        window.location.href = url;
+        return;
       }
       setTrialActivePlanId(planId);
       setSubscribedPlanId(null);
-    } catch {
-      // handled
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to start trial";
+      toast.error(message);
     } finally {
       setTrialPlanId((prev) => (prev === planId ? null : prev));
     }
@@ -101,8 +112,10 @@ export function BillingPage() {
     setExtendingTrial(true);
     try {
       await billingService.extendTrial();
-    } catch {
-      // handled
+      toast.success(t("subscription.extendTrial"));
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to extend trial";
+      toast.error(message);
     } finally {
       setExtendingTrial(false);
     }
@@ -113,8 +126,10 @@ export function BillingPage() {
     try {
       await billingService.setAutoRenew(!autoRenew);
       setAutoRenew(!autoRenew);
-    } catch {
-      // handled
+      toast.success(autoRenew ? t("subscription.disable") : t("subscription.enable"));
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to update auto-renewal";
+      toast.error(message);
     } finally {
       setTogglingAutoRenew(false);
     }
@@ -128,12 +143,51 @@ export function BillingPage() {
     );
   }
 
+  const successPlan = successPlanId && plans.length > 0 ? plans.find((p) => p.id === successPlanId) : null;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
+      {/* Payment success banner when redirected from Stripe */}
+      {paymentSuccess && (
+        <div className="bg-success/10 border border-success/20 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-success/20 p-2 shrink-0">
+              <CheckCircle2 className="h-6 w-6 text-success" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">{t("checkout.success")}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("checkout.successDesc")}</p>
+              {successPlan && (
+                <div className="mt-3 text-sm">
+                  <p className="font-medium text-foreground">{successPlan.name}</p>
+                  <p className="text-muted-foreground">
+                    {successPlan.price != null && successPlan.price > 0
+                      ? `$${successPlan.price}/month`
+                      : t("plans.free")}
+                  </p>
+                  {successPlan.features?.length > 0 && (
+                    <ul className="mt-1 list-disc list-inside text-muted-foreground">
+                      {successPlan.features.slice(0, 3).map((f, i) => (
+                        <li key={i}>{f}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          <Button asChild className="gradient-primary text-primary-foreground shrink-0">
+            <Link href="/instances">
+              <Server className="h-4 w-4 me-2" />
+              Go to Instances
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Plans */}
       {plans.length > 0 && (
