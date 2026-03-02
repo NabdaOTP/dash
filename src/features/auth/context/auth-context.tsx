@@ -34,8 +34,13 @@ function setTokenCookie(token: string) {
   document.cookie = `nadba-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
+function setInstanceTokenCookie(token: string) {
+  document.cookie = `nadba-instance-token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+}
+
 function removeTokenCookie() {
   document.cookie = "nadba-token=; path=/; max-age=0";
+  document.cookie = "nadba-instance-token=; path=/; max-age=0";
 }
 
 function saveToken(token: string) {
@@ -43,9 +48,17 @@ function saveToken(token: string) {
   setTokenCookie(token);
 }
 
+/** Store instance-scoped token (from select-instance). */
+function saveInstanceToken(token: string, instanceId: string) {
+  localStorage.setItem("nadba-instance-token", token);
+  localStorage.setItem("nadba-instance", instanceId);
+  setInstanceTokenCookie(token);
+}
+
 function clearAuth() {
   localStorage.removeItem("nadba-token");
   localStorage.removeItem("nadba-instance");
+  localStorage.removeItem("nadba-instance-token");
   removeTokenCookie();
 }
 
@@ -113,11 +126,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveToken(response.accessToken);
   }, []);
 
+  // const selectInstance = useCallback(
+  //   async (data: SelectInstanceRequest) => {
+  //     await authService.selectInstance(data);
+  //     setSelectedInstanceId(data.instanceId);
+  //     localStorage.setItem("nadba-instance", data.instanceId);
+  //   },
+  //   []
+  // );
+
   const selectInstance = useCallback(
     async (data: SelectInstanceRequest) => {
-      await authService.selectInstance(data);
+      const response = await authService.selectInstance(data);
+      const accessToken = response?.accessToken ?? (response as unknown as Record<string, string>)?.access_token;
+      if (accessToken) {
+        saveInstanceToken(accessToken, data.instanceId);
+      }
       setSelectedInstanceId(data.instanceId);
-      localStorage.setItem("nadba-instance", data.instanceId);
     },
     []
   );

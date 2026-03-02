@@ -7,6 +7,7 @@ import { routing } from "@/i18n/routing";
 import { ThemeProvider } from "@/features/layout/components/theme-provider";
 import { AuthProvider } from "@/features/auth/context/auth-context";
 import "../globals.css";
+import { Toaster } from "sonner";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -69,6 +70,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <AuthProvider>{children}</AuthProvider>
+            <Toaster position="top-center" richColors />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

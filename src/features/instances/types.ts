@@ -1,12 +1,17 @@
 export interface Instance {
   id: string;
   name: string;
-  status: "active" | "inactive" | "error";
+  status: "PAYMENT_PENDING" |"active" | "inactive" | "error";
   apiKey: string;
   token: string;
   apiId: string;
   createdAt: string;
   otpSent?: number;
   otpVerified?: number;
+  slug: string;
+  ownerId: string;
+  webhookUrl: string | null;
+  webhookEnabled: boolean;
+  updatedAt: string;
+  deletedAt: string | null;
 }
-

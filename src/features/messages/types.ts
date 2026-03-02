@@ -12,3 +12,9 @@ export interface MessagesResponse {
   page: number;
   limit: number;
 }
+
+export interface SendMessageRequest {
+  phone: string;
+  message: string;
+}
+
