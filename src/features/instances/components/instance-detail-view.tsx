@@ -1,6 +1,5 @@
 "use client";
 
-import { QRCodeDisplay } from "@/components/qr-code-display";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -13,32 +12,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/context/auth-context";
 import { getInstance, rotateApiKey } from "@/features/instances/services/instances-service";
 import type { Instance } from "@/features/instances/types";
 import { WhatsAppSection } from "@/features/whatsapp/components/WhatsAppSection";
 import { disconnect, restart } from "@/features/whatsapp/services/whatsapp-service";
-import { sendMessage } from "@/features/messages/services/messages-service";
 import { ApiError } from "@/lib/api-client";
 import {
   ArrowRightLeft,
   BookText,
-  Bot,
-  Brush,
   Check,
   Copy,
   DoorClosedLocked,
@@ -47,18 +36,11 @@ import {
   MessageCircle,
   RefreshCw,
   RotateCw,
-  Wrench,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import { Label } from "@/components/ui/label";
 import { notFound } from "next/navigation";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import whatsApp from "../../../../public/whatsapp.svg";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useOtp } from "../hooks/useOtp";
 
 export function InstanceDetailView({
   id,
@@ -68,17 +50,6 @@ export function InstanceDetailView({
   locale: string;
 }) {
   const { selectInstance } = useAuth();
-  const {
-    phone: otpPhone,
-    setPhone: setOtpPhone,
-    code: otpCode,
-    setCode: setOtpCode,
-    otpSent,
-    isSending: sendingOtp,
-    isVerifying: verifyingOtp,
-    sendOtp,
-    verifyOtp,
-  } = useOtp();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentRequired, setPaymentRequired] = useState(false);
@@ -86,10 +57,6 @@ export function InstanceDetailView({
   const [showRotateDialog, setShowRotateDialog] = useState(false);
   const [rotatingToken, setRotatingToken] = useState(false);
   const [whatsAppAction, setWhatsAppAction] = useState<"disconnect" | "restart" | "change" | null>(null);
-  const [showMessageDialog, setShowMessageDialog] = useState(false);
-  const [messagePhone, setMessagePhone] = useState("");
-  const [messageBody, setMessageBody] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
 
   const loadInstance = useCallback(async () => {
     if (!id) return;
@@ -172,35 +139,6 @@ export function InstanceDetailView({
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!messagePhone.trim() || !messagePhone.trim().startsWith("+")) {
-      toast.error("Phone number must start with + and include country code");
-      return;
-    }
-    if (!messageBody.trim()) {
-      toast.error("Message cannot be empty");
-      return;
-    }
-
-    setSendingMessage(true);
-    try {
-      await sendMessage({
-        phone: messagePhone.trim(),
-        message: messageBody.trim(),
-      });
-      toast.success("Message sent successfully");
-      setShowMessageDialog(false);
-      setMessagePhone("");
-      setMessageBody("");
-    } catch (err: unknown) {
-      const message =
-        (err as { message?: string })?.message ?? "Failed to send message";
-      toast.error(message);
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
   useEffect(() => {
     loadInstance();
   }, [loadInstance]);
@@ -277,23 +215,15 @@ export function InstanceDetailView({
                 API Docs
               </Button>
             </Link>
-            {/* <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-              <Wrench className="h-4 w-4 mr-1" />
-              Troubleshoot
-            </Button> */}
-            {/* <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-              <MessageCircle className="h-4 w-4 mr-1" />
-              Messages
-            </Button> */}
-            <Button
-              variant="ghost"
-              size="sm"
+            <Link
+              href={`/${locale}/instances/${id}/messages`}
               className="w-full sm:w-auto"
-              onClick={() => setShowMessageDialog(true)}
             >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              Messages
-            </Button>
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+                <MessageCircle className="h-4 w-4 mr-1" />
+                Messages
+              </Button>
+            </Link>
             <Button
               variant="ghost"
               size="sm"
@@ -339,236 +269,138 @@ export function InstanceDetailView({
           </div>
         </div>
         <div className="p-6 max-w-7xl mx-auto">
-          <Card className="overflow-hidden border-none shadow-sm">
-            <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow>
-                  <TableHead className="w-1/4 font-medium text-muted-foreground">
-                    AUTH STATUS
-                  </TableHead>
-                  <TableHead className="w-1/4 font-medium text-muted-foreground">
-                    API URL
-                  </TableHead>
-                  <TableHead className="w-1/4 font-medium text-muted-foreground">
-                    INSTANCE ID
-                  </TableHead>
-                  <TableHead className="w-1/4 font-medium text-muted-foreground">
-                    TOKEN
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="bg-linear-to-r from-purple-50 to-purple-50/50 hover:bg-purple-50/70 transition-colors">
-                  <TableCell className="font-medium">
-                    <Badge
-                      variant="outline"
-                      className="bg-white text-purple-700 border-purple-300 hover:bg-purple-50"
-                    >
-                      Scan QR code
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="text-sm font-mono text-purple-800 bg-purple-50 px-2 py-1 rounded">
-                        {apiUrl}
-                      </code>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => handleCopy(apiUrl, "apiUrl")}
+          {/* Credentials Card - UltraMsg-style Table */}
+          <Card className="overflow-hidden border border-border shadow-sm">
+            <CardHeader className="bg-muted/30 py-4">
+              <CardTitle className="text-base font-semibold">Credentials</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <table className="w-full table-fixed">
+                {/* Header Row */}
+                <thead>
+                  <tr className=" border-b bg-[#ede9fe]   border-[#c4b5fd]">
+                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3 w-40">
+                      Auth Status
+                    </th>
+                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">
+                      API URL
+                    </th>
+                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">
+                      Instance ID
+                    </th>
+                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">
+                      Token
+                    </th>
+                  </tr>
+                </thead>
+                {/* Data Row */}
+                <tbody>
+                  <tr className="bg-[#faf5ff]">
+                    {/* Auth Status */}
+                    <td className="px-4 py-4">
+                      <Badge
+                        className={
+                          instance.status === "ACTIVE" || instance.status === "active"
+                            ? "bg-[#16a34a] hover:bg-[#15803d] text-white border-0 text-xs font-semibold"
+                            : instance.status === "TRIAL"
+                              ? "bg-blue-500 hover:bg-blue-600 text-white border-0 text-xs font-semibold"
+                              : instance.status === "PAYMENT_PENDING"
+                                ? "bg-yellow-500 hover:bg-yellow-600 text-white border-0 text-xs font-semibold"
+                                : "bg-red-500 hover:bg-red-600 text-white border-0 text-xs font-semibold"
+                        }
                       >
-                        {copiedField === "apiUrl" ? (
-                          <Check className="h-4 w-4 text-success" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="text-sm font-mono">{id}</code>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => handleCopy(id, "instanceId")}
-                      >
-                        {copiedField === "instanceId" ? (
-                          <Check className="h-4 w-4 text-success" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="text-sm font-mono text-purple-800">
-                        ••••••••
-                        {instance.apiKey?.slice(-8) ||
-                          instance.token?.slice(-8) ||
-                          "—"}
-                      </code>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => handleCopy(tokenValue, "token")}
-                      >
-                        {copiedField === "token" ? (
-                          <Check className="h-4 w-4 text-success" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => setShowRotateDialog(true)}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                        {instance.status === "ACTIVE" || instance.status === "active"
+                          ? "Authenticated"
+                          : instance.status === "TRIAL"
+                            ? "Trial"
+                            : instance.status === "PAYMENT_PENDING"
+                              ? "Payment Pending"
+                              : instance.status === "inactive"
+                                ? "Inactive"
+                                : "Error"}
+                      </Badge>
+                    </td>
+
+                    {/* API URL */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={apiUrl}
+                          className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700"
+                          onClick={() => handleCopy(apiUrl, "apiUrl")}
+                        >
+                          {copiedField === "apiUrl"
+                            ? <Check className="h-4 w-4 text-green-600" />
+                            : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </td>
+
+                    {/* Instance ID */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={id}
+                          className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700"
+                          onClick={() => handleCopy(id, "instanceId")}
+                        >
+                          {copiedField === "instanceId"
+                            ? <Check className="h-4 w-4 text-green-600" />
+                            : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </td>
+
+                    {/* Token */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={instance.apiKey}
+                          className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700"
+                          onClick={() => handleCopy(tokenValue, "token")}
+                        >
+                          {copiedField === "token"
+                            ? <Check className="h-4 w-4 text-green-600" />
+                            : <Copy className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowRotateDialog(true)}
+                          title="Rotate token"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </CardContent>
           </Card>
           <div className="mt-8">
-            <WhatsAppSection instanceId={id} />
+            {/* <WhatsAppSection instanceId={id} /> */}
+            <WhatsAppSection instanceId={id} locale={locale} />
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 my-3">
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-muted/30 pb-4">
-                <CardTitle className="text-lg pt-6 sm:text-xl">
-                  Connect Your WhatsApp
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <ol className="list-decimal pl-5 space-y-3 text-sm sm:text-base text-muted-foreground">
-                  <li>Open WhatsApp on your phone</li>
-                  <li>Go to Settings → Linked Devices</li>
-                  <li>Tap &quot;Link a Device&quot;</li>
-                  <li>Scan the QR code on the right</li>
-                </ol>
-                <div className="flex justify-center">
-                  <div className="bg-white p-4 rounded-xl shadow-md">
-                    <QRCodeDisplay size={280} label="Scan with WhatsApp" />
-                  </div>
-                </div>
-                <Button className="w-full" variant="outline">
-                  <RefreshCw className="mr-2 h-4 w-4" /> Refresh QR Code (expires
-                  in 45s)
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="bg-linear-to-br from-green-950 to-black border-green-800/30 overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-md">
-                    <Image
-                      src={whatsApp}
-                      width={50}
-                      height={50}
-                      alt="WhatsApp logo"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">WhatsApp</p>
-                    <p className="text-xs text-green-400">
-                      Online • Scanning...
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6 pt-2 flex flex-col items-center justify-center min-h-95">
-                <div className="bg-white/10 p-6 rounded-2xl border border-white/20">
-                  <QRCodeDisplay size={220} />
-                </div>
-                <p className="text-xs text-green-300 mt-6 opacity-80">
-                  Scan this code with your phone to link the device
-                </p>
-              </CardContent>
-            </Card>
-            {/* OTP Service */}
-            <div className="mt-8">
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-muted/30 pb-4">
-                  <CardTitle className="text-lg sm:text-xl">OTP Service</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="otp-phone">Phone number</Label>
-                    <Input
-                      id="otp-phone"
-                      placeholder="+20123456789"
-                      value={otpPhone}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setOtpPhone(e.target.value)
-                      }
-                      disabled={sendingOtp || verifyingOtp}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Must start with + and include country code.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      onClick={sendOtp}
-                      disabled={sendingOtp || verifyingOtp}
-                    >
-                      {sendingOtp ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Sending OTP...
-                        </>
-                      ) : (
-                        "Send OTP"
-                      )}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="otp-code">OTP Code</Label>
-                    <Input
-                      id="otp-code"
-                      placeholder="123456"
-                      value={otpCode}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setOtpCode(e.target.value)
-                      }
-                      maxLength={6}
-                      disabled={!otpSent || verifyingOtp}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enter the 6-digit code received on WhatsApp.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={verifyOtp}
-                      disabled={!otpSent || verifyingOtp}
-                    >
-                      {verifyingOtp ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Verifying...
-                        </>
-                      ) : (
-                        "Verify OTP"
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
         </div>
       </div>
       <Dialog open={showRotateDialog} onOpenChange={setShowRotateDialog}>
@@ -577,8 +409,7 @@ export function InstanceDetailView({
             <DialogTitle>Rotate Token</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mt-2">
-            Are you sure you want to rotate the token? This will invalidate the
-            existing token and generate a new one.
+            Are you sure you want to rotate the token?
           </p>
           <DialogFooter className="mt-4">
             <Button
@@ -588,61 +419,11 @@ export function InstanceDetailView({
             >
               Cancel
             </Button>
-            <Button className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white" onClick={handleRotateToken} disabled={rotatingToken}>
+            <Button className="bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white" onClick={handleRotateToken} disabled={rotatingToken}>
               {rotatingToken ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 "Rotate Token"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Send WhatsApp Message</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Phone number</label>
-              <Input
-                placeholder="+201012345678"
-                value={messagePhone}
-                onChange={(e) => setMessagePhone(e.target.value)}
-                disabled={sendingMessage}
-              />
-              <p className="text-xs text-muted-foreground">
-                Must start with + and include country code.
-              </p>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Message</label>
-              <Textarea
-                placeholder="Your code is 123456"
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                rows={4}
-                disabled={sendingMessage}
-              />
-            </div>
-          </div>
-          <DialogFooter className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowMessageDialog(false)}
-              disabled={sendingMessage}
-            >
-              Cancel
-            </Button>
-            <Button className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white" onClick={handleSendMessage} disabled={sendingMessage}>
-              {sendingMessage ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                "Send Message"
               )}
             </Button>
           </DialogFooter>

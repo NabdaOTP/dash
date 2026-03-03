@@ -18,7 +18,7 @@
   "confirmRotate": "Yes, Rotate",
   "noInstances": "You don't have any instances yet. Create your first one!",
   "noResults": "No instances match your search.",
-  "createInstanceConfirm": "Are You Sure",
+  "createInstanceConfirm": "Are You Sure!",
   "actions.cancel":"Cancel",
   "actionsConfirm":"Confirm",
   "instanceCreated":"Instance Created Successfully ☑️",

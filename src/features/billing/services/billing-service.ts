@@ -1,12 +1,21 @@
 import { api } from "@/lib/api-client";
-import type { Plan, Invoice } from "../types";
+import type { Plan, Invoice, CurrentSubscription } from "../types";
 
 const instanceScope = { tokenScope: "instance" as const };
+
+export async function getCurrentSubscription(): Promise<CurrentSubscription | null> {
+  try {
+    return await api.get<CurrentSubscription>("/api/v1/subscriptions/current", instanceScope);
+  } catch {
+    return null;
+  }
+}
 
 export async function getPlans(): Promise<Plan[]> {
   const result = await api.get<Plan | Plan[]>("/api/v1/plans");
   return Array.isArray(result) ? result : [result];
 }
+
 
 export async function subscribe(planId: string): Promise<{ url?: string; checkoutUrl?: string }> {
   return api.post<{ url?: string; checkoutUrl?: string }>(

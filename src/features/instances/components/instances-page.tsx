@@ -33,19 +33,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import * as billingService from "@/features/billing/services/billing-service";
 import * as instancesService from "../services/instances-service";
 import type { Instance } from "../types";
 
 const statusStyles: Record<string, string> = {
   active: "bg-success/10 text-success border-success/20",
+  ACTIVE: "bg-success/10 text-success border-success/20",
+  TRIAL: "bg-success/10 text-success border-success/20",
   inactive: "bg-muted text-muted-foreground border-border",
   error: "bg-destructive/10 text-destructive border-destructive/20",
   "PAYMENT_PENDING": "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
 };
 
-function maskKey(key: string | undefined) {
-  if (!key || key.length < 12) return key || "—";
-  return key.slice(0, 8) + "..." + key.slice(-8);
+function isActiveOrTrial(status: string) {
+  return status === "ACTIVE" || status === "TRIAL" || status === "active";
 }
 
 export function InstancesPage() {
@@ -64,6 +66,7 @@ export function InstancesPage() {
     key: 'createdAt',
     direction: 'desc',
   });
+  const [payingInstanceId, setPayingInstanceId] = useState<string | null>(null);
   const t = useTranslations("instances");
   const tCommon = useTranslations("common");
   const locale = useLocale();
@@ -89,13 +92,30 @@ export function InstancesPage() {
   const handleCreate = async () => {
     setShowCreateConfirm(false);
     setCreating(true);
+    setCreatingdia(true);
     try {
-      await instancesService.createInstance();
-      setCreatingdia(true);
-      await new Promise(resolve => setTimeout(resolve, 2600));
+      const isFirstInstance = instances.length === 0;
+      const created = await instancesService.createInstance();
+
+      if (isFirstInstance) {
+        try {
+          await selectInstance({ instanceId: created.id });
+          const plans = await billingService.getPlans();
+          const planId = plans[0]?.id;
+          if (planId) {
+            await billingService.startTrial(planId);
+            toast.success("Trial started for your first instance");
+          }
+        } catch (err: unknown) {
+          const message =
+            (err as { message?: string })?.message ?? "Failed to start trial";
+          toast.error(message);
+        }
+      }
+
       await fetchInstances();
       toast.success(t("instanceCreated"));
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to create instance");
     } finally {
       setCreating(false);
@@ -149,6 +169,39 @@ export function InstancesPage() {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const handleActivatePay = async (instanceId: string) => {
+    setPayingInstanceId(instanceId);
+    try {
+      // ensure instance-scoped token is active for this instance
+      await selectInstance({ instanceId });
+      const plans = await billingService.getPlans();
+      const planId = plans[0]?.id;
+
+      if (!planId) {
+        toast.error("No billing plan available");
+        return;
+      }
+
+      const result = await billingService.subscribe(planId);
+      const checkoutUrl =
+        (result as any)?.url ?? (result as any)?.checkoutUrl;
+
+      if (!checkoutUrl) {
+        toast.error("No checkout URL returned");
+        return;
+      }
+
+      // redirect directly to Stripe (or configured gateway)
+      window.location.href = checkoutUrl;
+    } catch (err: unknown) {
+      const message =
+        (err as { message?: string })?.message ?? "Failed to start payment";
+      toast.error(message);
+    } finally {
+      setPayingInstanceId(null);
+    }
   };
 
   const filtered = instances.filter((inst) =>
@@ -221,112 +274,119 @@ export function InstancesPage() {
                   <TableHead className="font-semibold">{t("name")}</TableHead>
                   <TableHead
                     className="font-semibold cursor-pointer"
-                    onClick={() => handleSort('createdAt')}
+                    onClick={() => handleSort("createdAt")}
                   >
                     {t("creatDate")}{" "}
-                    {sortConfig.key === 'createdAt' &&
-                      (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    {sortConfig.key === "createdAt" &&
+                      (sortConfig.direction === "asc" ? "↑" : "↓")}
                   </TableHead>
                   <TableHead className="font-semibold">{t("expireDate")}</TableHead>
                   <TableHead className="font-semibold">{t("status")}</TableHead>
-                  <TableHead className="font-semibold">{t("apiKey")}</TableHead>
-                  <TableHead className="font-semibold text-end">{t("actions")}</TableHead>
+                  {/* API Key column removed */}
+                  <TableHead className="font-semibold text-end">
+                    {t("actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedInstances.map((inst) => (
-                  <TableRow key={inst.id} className="hover:bg-muted/20">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Server className="h-4 w-4 text-primary" />
+                {sortedInstances.map((inst) => {
+                  const active = isActiveOrTrial(inst.status);
+                  return (
+                    <TableRow
+                      key={inst.id}
+                      className="hover:bg-muted/30 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/${locale}/instances/${inst.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Server className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="font-medium">{inst.name}</span>
                         </div>
-                        <span className="font-medium">{inst.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{new Date(inst.createdAt).toLocaleDateString(locale)}</TableCell>
-                    <TableCell>—</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`text-xs ${statusStyles[inst.status] ||
-                          "bg-muted text-muted-foreground"
-                          }`}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(inst.createdAt).toLocaleDateString(locale)}
+                      </TableCell>
+                      <TableCell>—</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${statusStyles[inst.status] ?? "bg-muted text-muted-foreground"}`}
+                        >
+                          {inst.status === "PAYMENT_PENDING"
+                            ? "Payment Pending"
+                            : inst.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className="text-end"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {inst.status === "PAYMENT_PENDING"
-                          ? "Payment Pending"
-                          : inst.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-                        {maskKey(inst.apiKey)}
-                      </code>
-                    </TableCell>
-                    <TableCell className="text-end">
-                      <div className="flex items-center justify-end gap-1 flex-wrap">
-                        <Link href={`/${locale}/instances/${inst.id}`}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </Link>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(inst)}
-                        >
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setDeleteConfirmId(inst.id)}
-                          disabled={deletingId === inst.id}
-                        >
-                          {deletingId === inst.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          )}
-                        </Button>
-
-                        {inst.status === "PAYMENT_PENDING" && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-linear-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white gap-2"
-                            onClick={() =>
-                              router.push(`/billing/subscribe?instanceId=${inst.id}`)
-                            }
-                          >
-                            <CreditCard className="h-4 w-4" />
-                            Pay
-                          </Button>
-                        )}
-                        {inst.status === "active" && (<DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                router.push(`/${locale}/billing`)
-                              }
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
+                          <Link href={`/${locale}/instances/${inst.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              Manage Subscription
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>)}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(inst);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          {!active && instances.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmId(inst.id);
+                              }}
+                              disabled={deletingId === inst.id}
+                            >
+                              {deletingId === inst.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              )}
+                            </Button>
+                          )}
+                          {inst.status === "PAYMENT_PENDING" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleActivatePay(inst.id);
+                              }}
+                              disabled={!!payingInstanceId}
+                            >
+                              {payingInstanceId === inst.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CreditCard className="h-4 w-4" />
+                              )}
+                              {payingInstanceId === inst.id ? "Redirecting…" : "Pay"}
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

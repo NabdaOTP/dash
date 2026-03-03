@@ -1,9 +1,6 @@
 export interface Plan {
   id: string;
   name: string;
-  description: string;          
-  priceUsd: number;            
-  freeTrialDays: number;
   price: number;
   features: string[];
 }
@@ -16,3 +13,11 @@ export interface Invoice {
   createdAt: string;
   pdfUrl?: string;
 }
+
+export interface CurrentSubscription {
+  plan: Plan;
+  status?: string;
+  trialEnd?: string;
+  endDate?: string;
+}
+

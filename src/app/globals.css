@@ -84,7 +84,7 @@
   --font-app-sans: var(--font-roboto);
   --font-app-mono: var(--font-roboto-mono);
 
-  --gradient-primary: linear-gradient(135deg, #8b6cf6, #7c3aed);
+  --gradient-primary: linear-gradient(135deg, #A78BFA, #7C3AED);
   --shadow-card:
     0 1px 3px 0 rgb(24 26 42 / 0.04), 0 1px 2px -1px rgb(24 26 42 / 0.04);
   --shadow-elevated:

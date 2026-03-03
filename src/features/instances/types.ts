@@ -1,7 +1,7 @@
 export interface Instance {
   id: string;
   name: string;
-  status: "PAYMENT_PENDING" |"active" | "inactive" | "error";
+  status: "PAYMENT_PENDING" | "ACTIVE" | "TRIAL" | "active" | "inactive" | "error";
   apiKey: string;
   token: string;
   apiId: string;

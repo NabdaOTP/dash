@@ -120,10 +120,7 @@ export interface RequestOptions extends RequestInit {
   tokenScope?: TokenScope;
 }
 
-async function request<T>(
-  endpoint: string,
-  options: RequestOptions = {},
-): Promise<T> {
+async function request<T>(endpoint: string,options: RequestOptions = {},): Promise<T> {
   const { tokenScope = "user", ...fetchInit } = options;
   const token = getToken(tokenScope);
 
@@ -136,9 +133,26 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  if (fetchInit.body == null) {
+    delete headers["Content-Type"];
+  }
+  // for debugging
+  console.log("API Request:", {
+    url: `${API_URL}${endpoint}`,
+    method: fetchInit.method || "GET",
+    headers,
+    body: fetchInit.body ? JSON.parse(fetchInit.body as string) : null,
+  });
+
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...fetchInit,
     headers,
+    
+  });
+  // for devuggin
+  console.log("API Response:", {
+    status: res.status,
+    statusText: res.statusText,
   });
 
   if (res.status === 401) {
