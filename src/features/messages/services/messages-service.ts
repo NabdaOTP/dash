@@ -16,6 +16,7 @@ export async function getMessages(params?: {
   const query = searchParams.toString();
   return api.get<MessagesResponse>(
     `/api/v1/messages${query ? `?${query}` : ""}`,
+    instanceScope,
   );
 }
 

@@ -15,17 +15,13 @@ import { getMessages } from "@/features/messages/services/messages-service";
 import type { Message, MessagesResponse } from "@/features/messages/types";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 type TabValue = "all" | "queued" | "sent" | "invalid";
 
-export default function InstanceMessagesPage({
-  instanceId,
-  locale,
-}: {
-  instanceId: string;
-  locale: string;
-}) {
-  const id = instanceId;
+export default function InstanceMessagesPage() {
+  const params = useParams();
+  const id = params.id as string;
 
   const [tab, setTab] = useState<TabValue>("all");
   const [messages, setMessages] = useState<Message[]>([]);
