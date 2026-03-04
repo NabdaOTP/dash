@@ -20,7 +20,8 @@ export default function middleware(req: NextRequest) {
         nextRuntime: process.env.NEXT_RUNTIME,
       },
       timestamp: Date.now(),
-      hypothesisId: 'E',
+      runId: 'run2',
+      hypothesisId: 'A-C',
     }),
   }).catch(() => {});
   // #endregion
