@@ -19,5 +19,6 @@ export interface CurrentSubscription {
   status?: string;
   trialEnd?: string;
   endDate?: string;
+  autoRenew?: boolean;
 }
 

@@ -40,7 +40,9 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { getAutoRenew, setAutoRenew } from "@/features/billing/services/billing-service";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 export function InstanceDetailView({
   id,
@@ -57,6 +59,9 @@ export function InstanceDetailView({
   const [showRotateDialog, setShowRotateDialog] = useState(false);
   const [rotatingToken, setRotatingToken] = useState(false);
   const [whatsAppAction, setWhatsAppAction] = useState<"disconnect" | "restart" | "change" | null>(null);
+  const [autoRenew, setAutoRenewState] = useState(false);
+  const [autoRenewLoading, setAutoRenewLoading] = useState(false);
+
 
   const loadInstance = useCallback(async () => {
     if (!id) return;
@@ -122,6 +127,22 @@ export function InstanceDetailView({
       toast.error(message);
     } finally {
       setWhatsAppAction(null);
+    }
+  };
+
+  const handleAutoRenewChange = async (checked: boolean) => {
+    setAutoRenewLoading(true);
+    const prev = autoRenew;
+    setAutoRenewState(checked);
+    try {
+      await setAutoRenew(checked);
+      toast.success("Auto-renew updated");
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Failed to update auto-renew";
+      toast.error(message);
+      setAutoRenewState(prev);
+    } finally {
+      setAutoRenewLoading(false);
     }
   };
 
@@ -401,6 +422,31 @@ export function InstanceDetailView({
             {/* <WhatsAppSection instanceId={id} /> */}
             <WhatsAppSection instanceId={id} locale={locale} />
           </div>
+          {instance.status === "ACTIVE" || instance.status === "TRIAL" && <>
+          <Card className="mt-6 overflow-hidden border border-border shadow-sm">
+            <CardHeader className="bg-purple-100/30 py-4 pt-6">
+              <CardTitle className="text-base font-semibold">Subscription Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium">Auto-renew subscription</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Automatically renew your subscription when it expires
+                  </p>
+                </div>
+                <Switch
+                  checked={autoRenew}
+                  onCheckedChange={handleAutoRenewChange}
+                  disabled={autoRenewLoading}
+                />
+                {autoRenewLoading && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          </>}
         </div>
       </div>
       <Dialog open={showRotateDialog} onOpenChange={setShowRotateDialog}>

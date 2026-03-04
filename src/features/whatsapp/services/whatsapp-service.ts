@@ -3,19 +3,19 @@ import type { WhatsAppStatus, WhatsAppQrResponse } from "../types";
 
 const instanceScope = { tokenScope: "instance" as const };
 
-// export async function connect(): Promise<void> {
-//   return api.post<void>("/api/v1/whatsapp/connect", undefined, instanceScope);
-// }
 export async function connect(): Promise<void> {
-  return api.post<void>(
-    "/api/v1/whatsapp/connect",
-    null,
-    {
-      tokenScope: "instance",
-      headers: {},
-    }
-  );
+  return api.post<void>("/api/v1/whatsapp/connect", undefined, instanceScope);
 }
+// export async function connect(): Promise<void> {
+//   return api.post<void>(
+//     "/api/v1/whatsapp/connect",
+//     null,
+//     {
+//       tokenScope: "instance",
+//       headers: {},
+//     }
+//   );
+// }
 export async function getQrCode(): Promise<WhatsAppQrResponse> {
   return api.get<WhatsAppQrResponse>("/api/v1/whatsapp/qr", instanceScope);
 }

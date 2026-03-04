@@ -1,21 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import * as whatsappService from "@/features/whatsapp/services/whatsapp-service";
 import { Link } from "@/i18n/navigation";
 import {
-  Plus,
+  ArrowRight,
   BookOpen,
-  Wifi,
-  WifiOff,
-  MessageSquare,
-  Server,
+  Layers,
   Loader2,
-  RefreshCw,
+  Plus,
+  Wifi,
+  WifiOff
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
-import * as whatsappService from "@/features/whatsapp/services/whatsapp-service";
 
 type WaStep = "idle" | "connecting" | "awaiting_scan";
 
@@ -27,6 +26,7 @@ export function DashboardPage() {
   const [disconnectingWa, setDisconnectingWa] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const t = useTranslations("dashboard");
+  const locale = useLocale();
 
   const stopPolling = () => {
     if (pollRef.current) {
@@ -40,7 +40,7 @@ export function DashboardPage() {
       const data = await getDashboardData();
       setStats(data);
     } catch {
-      // Error handled by API client
+      // handled by api client
     } finally {
       setLoading(false);
     }
@@ -51,60 +51,60 @@ export function DashboardPage() {
     return () => stopPolling();
   }, []);
 
-  const handleConnectWhatsApp = async () => {
-    setWaStep("connecting");
-    try {
-      await whatsappService.connect();
-    } catch {
-      setWaStep("idle");
-      return;
-    }
+  // const handleConnectWhatsApp = async () => {
+  //   setWaStep("connecting");
+  //   try {
+  //     await whatsappService.connect();
+  //   } catch {
+  //     setWaStep("idle");
+  //     return;
+  //   }
 
-    setWaStep("awaiting_scan");
+  //   setWaStep("awaiting_scan");
 
-    const poll = async () => {
-      try {
-        const status = await whatsappService.getStatus();
-        if (status.status === "connected") {
-          stopPolling();
-          setWaStep("idle");
-          setQrCode(null);
-          setLoading(true);
-          await fetchData();
-          return;
-        }
-      } catch {
-        // continue polling
-      }
-      try {
-        const qrData = await whatsappService.getQrCode();
-        if (qrData.qr) setQrCode(qrData.qr);
-      } catch {
-        // QR not ready yet, continue polling
-      }
-    };
+  //   const poll = async () => {
+  //     try {
+  //       const status = await whatsappService.getStatus();
+  //       if (status.status === "connected") {
+  //         stopPolling();
+  //         setWaStep("idle");
+  //         setQrCode(null);
+  //         setLoading(true);
+  //         await fetchData();
+  //         return;
+  //       }
+  //     } catch {
+  //       // continue polling
+  //     }
+  //     try {
+  //       const qrData = await whatsappService.getQrCode();
+  //       if (qrData.qr) setQrCode(qrData.qr);
+  //     } catch {
+  //       // QR not ready yet
+  //     }
+  //   };
 
-    poll();
-    pollRef.current = setInterval(poll, 3000);
-  };
+  //   poll();
+  //   pollRef.current = setInterval(poll, 3000);
+  // };
 
-  const handleCancelConnect = () => {
-    stopPolling();
-    setWaStep("idle");
-    setQrCode(null);
-  };
+  // const handleCancelConnect = () => {
+  //   stopPolling();
+  //   setWaStep("idle");
+  //   setQrCode(null);
+  // };
 
-  const handleDisconnectWhatsApp = async () => {
-    setDisconnectingWa(true);
-    try {
-      await whatsappService.disconnect();
-      await fetchData();
-    } catch {
-      // handled
-    } finally {
-      setDisconnectingWa(false);
-    }
-  };
+  // const handleDisconnectWhatsApp = async () => {
+  //   setDisconnectingWa(true);
+  //   try {
+  //     await whatsappService.disconnect();
+  //     await fetchData();
+  //   } catch {
+  //     // handled
+  //   } finally {
+  //     setDisconnectingWa(false);
+  //   }
+  // };
 
   if (loading) {
     return (
@@ -114,6 +114,9 @@ export function DashboardPage() {
     );
   }
 
+  const activeCount = stats?.activeInstances ?? 0;
+  const stoppedCount = stats?.stoppedInstances ?? 0;
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Welcome */}
@@ -122,129 +125,125 @@ export function DashboardPage() {
         <p className="text-muted-foreground text-sm">{t("subtitle")}</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Current Instance */}
-        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Server className="h-5 w-5 text-primary" />
-            </div>
+      {/* UltraMsg-style Instance Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Active Instances */}
+        <div className="rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-[#4caf50] p-6 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">{t("currentInstance")}</p>
-              <p className="font-semibold text-foreground">{stats?.instanceName || "—"}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* WhatsApp Status */}
-        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
-          {waStep === "awaiting_scan" ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-foreground">{t("connectWhatsApp")}</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCancelConnect}
-                  className="text-xs text-muted-foreground"
-                >
-                  {t("cancelConnect")}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">{t("scanQR")}</p>
-              {qrCode ? (
-                <img
-                  src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
-                  alt="WhatsApp QR Code"
-                  className="w-44 h-44 rounded-lg border border-border"
-                />
-              ) : (
-                <div className="w-44 h-44 rounded-lg border border-border bg-muted/30 flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                    stats?.whatsappConnected ? "bg-success/10" : "bg-muted"
-                  }`}
-                >
-                  {stats?.whatsappConnected ? (
-                    <Wifi className="h-5 w-5 text-success" />
-                  ) : (
-                    <WifiOff className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">WhatsApp</p>
-                  <p className="font-semibold text-foreground">
-                    {stats?.whatsappConnected ? t("connected") : t("disconnected")}
-                  </p>
-                </div>
-              </div>
-              {stats?.whatsappConnected ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDisconnectWhatsApp}
-                  disabled={disconnectingWa}
-                  className="text-xs text-destructive"
-                >
-                  {disconnectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("disconnect")}
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleConnectWhatsApp}
-                  disabled={waStep === "connecting"}
-                  className="text-xs text-primary"
-                >
-                  {waStep === "connecting" ? <Loader2 className="h-3 w-3 animate-spin" /> : t("connect")}
-                </Button>
-              )}
-            </div>
-          )}
-          {waStep === "idle" && stats?.whatsappPhone && (
-            <p className="text-xs text-muted-foreground">{stats.whatsappPhone}</p>
-          )}
-        </div>
-
-        {/* Messages */}
-        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t("totalMessages")}</p>
-              <p className="font-semibold text-foreground">
-                {stats?.totalMessages?.toLocaleString() || "0"}
+              <p className="text-4xl font-bold text-white">{activeCount}</p>
+              <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
+                ACTIVE
               </p>
             </div>
+            <Layers className="h-14 w-14 text-white/30" />
           </div>
+          <Link
+            href="/instances"
+            className="flex items-center justify-between bg-[#43a047] px-6 py-3 hover:bg-[#388e3c] transition-colors group"
+          >
+            <span className="text-white font-medium text-sm">View Details</span>
+            <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+
+        {/* Stopped Instances */}
+        <div className="rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-[#f44336] p-6 flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-white">{stoppedCount}</p>
+              <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
+                STOPPED
+              </p>
+            </div>
+            <Layers className="h-14 w-14 text-white/30" />
+          </div>
+          <Link
+            href="/instances"
+            className="flex items-center justify-between bg-[#e53935] px-6 py-3 hover:bg-[#c62828] transition-colors group"
+          >
+            <span className="text-white font-medium text-sm">View Details</span>
+            <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
       </div>
 
-      {/* Refresh */}
-      <div className="flex justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setLoading(true);
-            fetchData();
-          }}
-          className="text-muted-foreground gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          {t("refresh")}
-        </Button>
-      </div>
+      {/* WhatsApp Status Card */}
+      {/* <div className="bg-card rounded-xl border border-border p-6">
+        {waStep === "awaiting_scan" ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">{t("connectWhatsApp")}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelConnect}
+                className="text-xs text-muted-foreground"
+              >
+                {t("cancelConnect")}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("scanQR")}</p>
+            {qrCode ? (
+              <img
+                src={qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`}
+                alt="WhatsApp QR Code"
+                className="w-44 h-44 rounded-lg border border-border"
+              />
+            ) : (
+              <div className="w-44 h-44 rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                  stats?.whatsappConnected ? "bg-success/10" : "bg-muted"
+                }`}
+              >
+                {stats?.whatsappConnected ? (
+                  <Wifi className="h-5 w-5 text-success" />
+                ) : (
+                  <WifiOff className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">WhatsApp</p>
+                <p className="font-semibold text-foreground">
+                  {stats?.whatsappConnected ? t("connected") : t("disconnected")}
+                </p>
+                {stats?.whatsappPhone && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{stats.whatsappPhone}</p>
+                )}
+              </div>
+            </div>
+            {stats?.whatsappConnected ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDisconnectWhatsApp}
+                disabled={disconnectingWa}
+                className="text-xs text-destructive"
+              >
+                {disconnectingWa ? <Loader2 className="h-3 w-3 animate-spin" /> : t("disconnect")}
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleConnectWhatsApp}
+                disabled={waStep === "connecting"}
+                className="text-xs text-primary"
+              >
+                {waStep === "connecting" ? <Loader2 className="h-3 w-3 animate-spin" /> : t("connect")}
+              </Button>
+            )}
+          </div>
+        )}
+      </div> */}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -257,12 +256,8 @@ export function DashboardPage() {
               <Plus className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">
-                {t("createInstance")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {t("createInstanceDesc")}
-              </p>
+              <h3 className="font-semibold text-foreground">{t("createInstance")}</h3>
+              <p className="text-sm text-muted-foreground">{t("createInstanceDesc")}</p>
             </div>
           </div>
         </Link>
@@ -277,9 +272,7 @@ export function DashboardPage() {
             </div>
             <div>
               <h3 className="font-semibold text-foreground">{t("viewDocs")}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t("viewDocsDesc")}
-              </p>
+              <p className="text-sm text-muted-foreground">{t("viewDocsDesc")}</p>
             </div>
           </div>
         </Link>

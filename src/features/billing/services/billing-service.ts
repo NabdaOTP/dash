@@ -37,8 +37,29 @@ export async function extendTrial(): Promise<void> {
   return api.post<void>("/api/v1/subscriptions/trial/extend", undefined, instanceScope);
 }
 
+/** Extend trial for a specific instance. Caller must selectInstance first. Sends instanceId in body. */
+export async function extendTrialForInstance(instanceId: string): Promise<void> {
+  return api.post<void>(
+    "/api/v1/subscriptions/trial/extend",
+    { instanceId },
+    instanceScope
+  );
+}
+
 export async function setAutoRenew(autoRenew: boolean): Promise<void> {
   return api.patch<void>("/api/v1/subscriptions/auto-renew", { autoRenew }, instanceScope);
+}
+
+/** Fetch current auto-renew status. Uses subscription/current or dedicated endpoint. Returns false on error. */
+export async function getAutoRenew(): Promise<boolean> {
+  try {
+    const sub = await getCurrentSubscription();
+    if (sub?.autoRenew === true) return true;
+    const res = await api.get<{ autoRenew?: boolean }>("/api/v1/subscriptions/auto-renew", instanceScope);
+    return res?.autoRenew === true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getInvoices(): Promise<Invoice[]> {

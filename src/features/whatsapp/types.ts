@@ -1,5 +1,5 @@
 export interface WhatsAppStatus {
-  status: "connected" | "disconnected" | "connecting" | "qr_ready";
+  status: "connected" | "disconnected" | "connecting" | "qr_ready"| "reconnecting";
   phone?: string;
   connectedAt?: string;
 }

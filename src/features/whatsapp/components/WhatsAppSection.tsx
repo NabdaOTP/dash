@@ -73,40 +73,77 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     return () => clearInterval(interval);
   }, [instanceId, fetchData, error?.is401]);
 
-  const handleConnect = useCallback(async () => {
-    if (status?.status === "connected") return;
-    setConnecting(true);
-    try {
-      await connect();
-      await fetchData();
-      toast.success("Connect requested. QR code will appear shortly.");
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message ?? "Failed to connect";
-      toast.error(msg);
-    } finally {
-      setConnecting(false);
-    }
-  }, [status?.status, fetchData]);
+  // const handleConnect = useCallback(async () => {
+  //   if (status?.status === "connected") return;
+  //   setConnecting(true);
+  //   try {
+  //     await connect();
+  //     await fetchData();
+  //     toast.success("Connect requested. QR code will appear shortly.");
+  //   } catch (err: unknown) {
+  //     const msg = (err as { message?: string })?.message ?? "Failed to connect";
+  //     toast.error(msg);
+  //   } finally {
+  //     setConnecting(false);
+  //   }
+  // }, [status?.status, fetchData]);
 
   const handleRefreshQr = useCallback(async () => {
     if (status?.status === "connected") return;
     setRefreshingQr(true);
-    try {
-      const r = await getQrCode();
-      const qrValue = r && typeof r === "object" && "qr" in r ? (r as WhatsAppQrResponse).qr : null;
-      if (qrValue) {
-        setQr(qrValue);
-        toast.success("QR code refreshed");
-      } else {
-        toast.error("QR code not available. Try Connect first.");
+
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const tryGetQr = async (): Promise<void> => {
+      attempts++;
+      try {
+        const r = await getQrCode();
+        const qrValue = r?.qr ?? null;
+        if (qrValue) {
+          setQr(qrValue);
+          toast.success("QR code ready. Scan to connect.");
+          setRefreshingQr(false);
+          return;
+        }
+      } catch {
+
       }
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message ?? "Failed to load QR code";
-      toast.error(msg);
-    } finally {
-      setRefreshingQr(false);
-    }
+
+      if (attempts < maxAttempts) {
+        await new Promise((res) => setTimeout(res, 3000));
+        await tryGetQr();
+      } else {
+        toast.error("QR code not ready. Try clicking Connect again.");
+        setRefreshingQr(false);
+      }
+    };
+
+    await tryGetQr();
   }, [status?.status]);
+
+  const handleConnect = useCallback(async () => {
+    if (status?.status === "connected") return;
+    setConnecting(true);
+    try {
+      if (status?.status !== "connecting") {
+        await connect();
+      }
+      await new Promise((res) => setTimeout(res, 3000));
+      await handleRefreshQr();
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message ?? "Failed to connect";
+      if (msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout")) {
+        toast.info("WhatsApp is starting up. Please wait...");
+        await handleRefreshQr();
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setConnecting(false);
+    }
+  }, [status?.status, handleRefreshQr]);
+
 
   const handleSendMessage = useCallback(async () => {
     const phone = sendPhone.trim();

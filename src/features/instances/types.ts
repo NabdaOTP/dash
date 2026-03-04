@@ -14,4 +14,7 @@ export interface Instance {
   webhookEnabled: boolean;
   updatedAt: string;
   deletedAt: string | null;
+  trialEnd?: string | null;
+  expiresAt?: string | null;
+  isTrialInstance?: boolean;
 }
