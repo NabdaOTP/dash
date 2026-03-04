@@ -43,7 +43,8 @@ import { useCallback, useEffect, useState } from "react";
 import { getAutoRenew, setAutoRenew } from "@/features/billing/services/billing-service";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-
+import { connect } from "@/features/whatsapp/services/whatsapp-service";
+import { Wifi } from "lucide-react";
 export function InstanceDetailView({
   id,
   locale,
@@ -61,7 +62,7 @@ export function InstanceDetailView({
   const [whatsAppAction, setWhatsAppAction] = useState<"disconnect" | "restart" | "change" | null>(null);
   const [autoRenew, setAutoRenewState] = useState(false);
   const [autoRenewLoading, setAutoRenewLoading] = useState(false);
-
+  const [connectingWa, setConnectingWa] = useState(false);
 
   const loadInstance = useCallback(async () => {
     if (!id) return;
@@ -109,6 +110,23 @@ export function InstanceDetailView({
       toast.error(message);
     } finally {
       setRotatingToken(false);
+    }
+  };
+
+  const handleConnectWhatsApp = async () => {
+    setConnectingWa(true);
+    try {
+      await connect();
+      toast.success("WhatsApp connecting... QR code will appear below.");
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message ?? "";
+      if (msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout")) {
+        toast.info("WhatsApp is starting up. Check the section below.");
+      } else {
+        toast.error(msg || "Failed to connect WhatsApp");
+      }
+    } finally {
+      setConnectingWa(false);
     }
   };
 
@@ -293,7 +311,22 @@ export function InstanceDetailView({
           {/* Credentials Card - UltraMsg-style Table */}
           <Card className="overflow-hidden border border-border shadow-sm">
             <CardHeader className="bg-muted/30 py-4">
-              <CardTitle className="text-base font-semibold">Credentials</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold">Credentials</CardTitle>
+                {/* ✅ Connect WhatsApp button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 border-[#7C3AED] text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white"
+                  onClick={handleConnectWhatsApp}
+                  disabled={connectingWa}
+                >
+                  {connectingWa
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Wifi className="h-4 w-4" />}
+                  {connectingWa ? "Connecting..." : "Connect WhatsApp"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <table className="w-full table-fixed">
@@ -420,32 +453,38 @@ export function InstanceDetailView({
           </Card>
           <div className="mt-8">
             {/* <WhatsAppSection instanceId={id} /> */}
-            <WhatsAppSection instanceId={id} locale={locale} />
+            {instance && (
+              <WhatsAppSection
+                key={instance.id}
+                instanceId={id}
+                locale={locale}
+              />
+            )}
           </div>
           {instance.status === "ACTIVE" || instance.status === "TRIAL" && <>
-          <Card className="mt-6 overflow-hidden border border-border shadow-sm">
-            <CardHeader className="bg-purple-100/30 py-4 pt-6">
-              <CardTitle className="text-base font-semibold">Subscription Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium">Auto-renew subscription</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Automatically renew your subscription when it expires
-                  </p>
+            <Card className="mt-6 overflow-hidden border border-border shadow-sm">
+              <CardHeader className="bg-purple-100/30 py-4 pt-6">
+                <CardTitle className="text-base font-semibold">Subscription Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium">Auto-renew subscription</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Automatically renew your subscription when it expires
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoRenew}
+                    onCheckedChange={handleAutoRenewChange}
+                    disabled={autoRenewLoading}
+                  />
+                  {autoRenewLoading && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
                 </div>
-                <Switch
-                  checked={autoRenew}
-                  onCheckedChange={handleAutoRenewChange}
-                  disabled={autoRenewLoading}
-                />
-                {autoRenewLoading && (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           </>}
         </div>
       </div>
