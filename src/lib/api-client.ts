@@ -1,4 +1,3 @@
-// Direct API calls to the backend
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.nabdaotp.com";
 
 export class ApiError extends Error {
@@ -43,23 +42,10 @@ async function request<T>(endpoint: string,options: RequestOptions = {},): Promi
   if (fetchInit.body == null) {
     delete headers["Content-Type"];
   }
-  // for debugging
-  console.log("API Request:", {
-    url: `${API_URL}${endpoint}`,
-    method: fetchInit.method || "GET",
-    headers,
-    body: fetchInit.body ? JSON.parse(fetchInit.body as string) : null,
-  });
 
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...fetchInit,
     headers,
-    
-  });
-  // for devuggin
-  console.log("API Response:", {
-    status: res.status,
-    statusText: res.statusText,
   });
 
   if (res.status === 401) {

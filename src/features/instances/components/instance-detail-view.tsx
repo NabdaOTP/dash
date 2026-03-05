@@ -62,6 +62,7 @@ export function InstanceDetailView({id,locale,}: {id: string;locale: string;}) {
   const [autoRenewLoading, setAutoRenewLoading] = useState(false);
   const [connectingWa, setConnectingWa] = useState(false);
 
+<<<<<<< HEAD
  const loadInstance = useCallback(async () => {
   if (!id) return;
   setLoading(true);
@@ -75,6 +76,28 @@ export function InstanceDetailView({id,locale,}: {id: string;locale: string;}) {
       setPaymentRequired(true);
     } else {
       notFound();
+=======
+  const loadInstance = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setPaymentRequired(false);
+    try {
+      await selectInstance({ instanceId: id });
+      const [data, autoRenewValue] = await Promise.all([
+        getInstance(id),
+        getAutoRenew(),
+      ]);
+      setInstance(data);
+      setAutoRenewState(autoRenewValue);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setPaymentRequired(true);
+      } else {
+        notFound();
+      }
+    } finally {
+      setLoading(false);
+>>>>>>> 9adf2ecd0c6b96ddc6c7f0d4b257fc63fa92f5a4
     }
   } finally {
     setLoading(false);
@@ -228,7 +251,7 @@ export function InstanceDetailView({id,locale,}: {id: string;locale: string;}) {
 
   if (!instance) return null;
 
-  const apiUrl = `https://api.nabdaotp.com/inst/${id}`;
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || "https://api.nabdaotp.com"}/inst/${id}`;
   const tokenValue = instance.apiKey || instance.token || "";
 
   return (
@@ -480,7 +503,7 @@ export function InstanceDetailView({id,locale,}: {id: string;locale: string;}) {
               />
             )}
           </div>
-          {instance.status === "ACTIVE" || instance.status === "TRIAL" && <>
+          {(instance.status === "ACTIVE" || instance.status === "TRIAL") && <>
             <Card className="mt-6 overflow-hidden border border-border shadow-sm">
               <CardHeader className="bg-purple-100/30 py-4 pt-6">
                 <CardTitle className="text-base font-semibold">Subscription Settings</CardTitle>
