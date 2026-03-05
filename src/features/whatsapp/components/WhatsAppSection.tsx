@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { RefreshCw, Send, Loader2 } from "lucide-react";
@@ -18,53 +19,53 @@ interface WhatsAppSectionProps {
   instanceId: string;
   locale?: string;
 }
+
 function WhatsAppSkeleton() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-      {/* Left Card Skeleton */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="p-6 border-b border-border">
-          <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+          <Skeleton className="h-6 w-40" />
         </div>
         <div className="p-6 space-y-6">
           <div className="flex justify-center">
-            <div className="w-48 h-48 bg-muted rounded-lg animate-pulse" />
+            <Skeleton className="w-48 h-48 rounded-lg" />
           </div>
           <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-4 bg-muted rounded animate-pulse" style={{ width: `${70 + i * 5}%` }} />
+            {[75, 80, 85, 90].map((w) => (
+              <Skeleton key={w} className="h-4 rounded" style={{ width: `${w}%` }} />
             ))}
           </div>
           <div className="flex gap-3">
-            <div className="h-9 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-9 w-28 bg-muted rounded animate-pulse" />
+            <Skeleton className="h-9 w-24 rounded" />
+            <Skeleton className="h-9 w-28 rounded" />
           </div>
         </div>
       </div>
 
-      {/* Right Card Skeleton */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="p-6 border-b border-border">
-          <div className="h-6 w-44 bg-muted rounded animate-pulse" />
+          <Skeleton className="h-6 w-44" />
         </div>
         <div className="p-6 space-y-6">
-          <div className="h-8 w-32 bg-muted rounded-full animate-pulse" />
+          <Skeleton className="h-8 w-32 rounded-full" />
           <div className="flex gap-3">
-            <div className="h-9 w-28 bg-muted rounded animate-pulse" />
-            <div className="h-9 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-9 w-24 bg-muted rounded animate-pulse" />
+            <Skeleton className="h-9 w-28 rounded" />
+            <Skeleton className="h-9 w-24 rounded" />
+            <Skeleton className="h-9 w-24 rounded" />
           </div>
           <div className="border-t pt-6 space-y-4">
-            <div className="h-5 w-28 bg-muted rounded animate-pulse" />
-            <div className="h-10 w-full bg-muted rounded animate-pulse" />
-            <div className="h-24 w-full bg-muted rounded animate-pulse" />
-            <div className="h-10 w-full bg-muted rounded animate-pulse" />
+            <Skeleton className="h-5 w-28 rounded" />
+            <Skeleton className="h-10 w-full rounded" />
+            <Skeleton className="h-24 w-full rounded" />
+            <Skeleton className="h-10 w-full rounded" />
           </div>
         </div>
       </div>
     </div>
   );
 }
+
 export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionProps) {
   const [status, setStatus] = useState<WhatsAppStatus | null>(null);
   const [qr, setQr] = useState<string | null>(null);
@@ -76,41 +77,6 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const [refreshingQr, setRefreshingQr] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  // const fetchData = useCallback(async () => {
-  //   try {
-  //     setError(null);
-  //     const stat = await getStatus();
-  //     setStatus(stat);
-
-  //     if (stat.status === "qr_ready" || stat.status === "disconnected") {
-  //       try {
-  //         const qrRes = await getQrCode();
-  //         const qrValue = qrRes && typeof qrRes === "object" && "qr" in qrRes
-  //           ? (qrRes as WhatsAppQrResponse).qr
-  //           : null;
-  //         setQr(qrValue ?? null);
-  //       } catch {
-  //         setQr(null);
-  //       }
-  //     } else {
-  //       setQr(null);
-  //     }
-  //   } catch (err: unknown) {
-  //     const errStatus = (err as { status?: number })?.status;
-  //     if (errStatus === 403) {
-  //       setError({ message: "Instance not active or missing scoped token. Complete payment first." });
-  //     } else if (errStatus === 401) {
-  //       setError({
-  //         message: "Session expired. Please go back to instances and reopen this instance.",
-  //         is401: true,
-  //       });
-  //     } else {
-  //       setError({ message: "Failed to load WhatsApp status" });
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, []);
   const fetchData = useCallback(async (isInitial = false) => {
     try {
       setError(null);
@@ -140,43 +106,20 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           is401: true,
         });
       } else if (!isInitial) {
-        
         setError({ message: "Failed to load WhatsApp status" });
       }
-      
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // ✅ single useEffect only
   useEffect(() => {
     if (error?.is401) return;
-    
     fetchData(true);
     const interval = setInterval(() => fetchData(false), 10000);
     return () => clearInterval(interval);
   }, [instanceId, fetchData, error?.is401]);
-  useEffect(() => {
-    if (error?.is401) return;
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, [instanceId, fetchData, error?.is401]);
-
-  // const handleConnect = useCallback(async () => {
-  //   if (status?.status === "connected") return;
-  //   setConnecting(true);
-  //   try {
-  //     await connect();
-  //     await fetchData();
-  //     toast.success("Connect requested. QR code will appear shortly.");
-  //   } catch (err: unknown) {
-  //     const msg = (err as { message?: string })?.message ?? "Failed to connect";
-  //     toast.error(msg);
-  //   } finally {
-  //     setConnecting(false);
-  //   }
-  // }, [status?.status, fetchData]);
 
   const handleRefreshQr = useCallback(async () => {
     if (status?.status === "connected") return;
@@ -196,9 +139,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           setRefreshingQr(false);
           return;
         }
-      } catch {
-
-      }
+      } catch {}
 
       if (attempts < maxAttempts) {
         await new Promise((res) => setTimeout(res, 3000));
@@ -233,7 +174,6 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       setConnecting(false);
     }
   }, [status?.status, handleRefreshQr]);
-
 
   const handleSendMessage = useCallback(async () => {
     const phone = sendPhone.trim();
@@ -288,7 +228,6 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-      {/* Left: QR + Instructions */}
       <Card>
         <CardHeader>
           <h3 className="text-xl font-semibold">Connect WhatsApp</h3>
@@ -340,7 +279,6 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
         </CardContent>
       </Card>
 
-      {/* Right: Status + Controls + Send Message Form */}
       <Card>
         <CardHeader>
           <h3 className="text-xl font-semibold">Connection Status</h3>
@@ -395,7 +333,6 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
             </Button>
           </div>
 
-          {/* Inline Send Message Form */}
           <div className="border-t pt-6 space-y-4">
             <h4 className="font-medium">Send Message</h4>
             <div className="space-y-2">

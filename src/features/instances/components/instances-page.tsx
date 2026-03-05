@@ -221,13 +221,11 @@ export function InstancesPage() {
     }
   };
 
+ // function made by front manually not from backend response 
   function getDisplayExpiry(inst: Instance): string {
   if (!inst.expiresAt) return "—";
-  
   const expires = new Date(inst.expiresAt);
   const created = new Date(inst.createdAt);
-  
-  // لو الـ expiresAt نفس اليوم من الـ createdAt → الـ backend غلطان، نحسبها manually
   const sameDay = expires.toDateString() === created.toDateString();
   if (sameDay && !inst.isTrialInstance) {
     const calculated = new Date(created);
