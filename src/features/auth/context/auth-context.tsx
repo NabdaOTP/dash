@@ -31,11 +31,13 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function setTokenCookie(token: string) {
-  document.cookie = `nadba-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  // document.cookie = `nadba-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  document.cookie = `nadba-token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
 }
 
 function setInstanceTokenCookie(token: string) {
-  document.cookie = `nadba-instance-token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+  // document.cookie = `nadba-instance-token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+  document.cookie = `nadba-instance-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
 function removeTokenCookie() {
@@ -74,11 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedToken = localStorage.getItem("nadba-token");
     const storedInstance = localStorage.getItem("nadba-instance");
+    const storedInstanceToken = localStorage.getItem("nadba-instance-token");
 
     if (storedToken) {
       setToken(storedToken);
       setTokenCookie(storedToken);
       if (storedInstance) setSelectedInstanceId(storedInstance);
+      if (storedInstanceToken) {
+        setInstanceTokenCookie(storedInstanceToken);
+      }
 
       authService
         .getMe()
@@ -96,8 +102,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // const login = useCallback(async (data: LoginRequest) => {
+  //   const response = await authService.login(data);
+  //   const accessToken = response.accessToken || (response as unknown as Record<string, string>).access_token;
+  //   if (!accessToken) {
+  //     throw new Error("No access token in login response");
+  //   }
+  //   saveToken(accessToken);
+  //   setToken(accessToken);
+
+  //   if (response.user) {
+  //     setUser(response.user);
+  //   } else {
+  //     // Some APIs don't return user in login response — fetch separately
+  //     const userData = await authService.getMe();
+  //     setUser(userData);
+  //   }
+  //   return response;
+  // }, []);
+
   const login = useCallback(async (data: LoginRequest) => {
     const response = await authService.login(data);
+
+    if ((response as Record<string, unknown>)?.requires2fa) {
+      return response;
+    }
+
     const accessToken = response.accessToken || (response as unknown as Record<string, string>).access_token;
     if (!accessToken) {
       throw new Error("No access token in login response");
@@ -108,23 +138,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (response.user) {
       setUser(response.user);
     } else {
-      // Some APIs don't return user in login response — fetch separately
       const userData = await authService.getMe();
       setUser(userData);
     }
     return response;
   }, []);
-
   const register = useCallback(async (data: RegisterRequest) => {
     return authService.register(data);
   }, []);
 
+  // const verifyOtp = useCallback(async (data: VerifyOtpRequest) => {
+  //   const response = await authService.verifyOtp(data);
+  //   setToken(response.accessToken);
+  //   setUser(response.user);
+  //   saveToken(response.accessToken);
+  // }, []);
   const verifyOtp = useCallback(async (data: VerifyOtpRequest) => {
-    const response = await authService.verifyOtp(data);
+  const response = await authService.verifyOtp(data);
+  if (response.accessToken) {  // ✅ check before usage
     setToken(response.accessToken);
-    setUser(response.user);
     saveToken(response.accessToken);
-  }, []);
+  }
+  if (response.user) {
+    setUser(response.user);
+  }
+}, []);
 
   // const selectInstance = useCallback(
   //   async (data: SelectInstanceRequest) => {

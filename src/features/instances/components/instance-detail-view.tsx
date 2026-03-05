@@ -1,5 +1,9 @@
 "use client";
 
+// TODO: when backend is ready, add to imports:
+// import { useSearchParams } from "next/navigation";
+// import { connect } from "@/features/whatsapp/services/whatsapp-service";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -45,13 +49,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { connect } from "@/features/whatsapp/services/whatsapp-service";
 import { Wifi } from "lucide-react";
-export function InstanceDetailView({
-  id,
-  locale,
-}: {
-  id: string;
-  locale: string;
-}) {
+export function InstanceDetailView({id,locale,}: {id: string;locale: string;}) {
   const { selectInstance } = useAuth();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,24 +62,30 @@ export function InstanceDetailView({
   const [autoRenewLoading, setAutoRenewLoading] = useState(false);
   const [connectingWa, setConnectingWa] = useState(false);
 
-  const loadInstance = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setPaymentRequired(false);
-    try {
-      await selectInstance({ instanceId: id });
-      const data = await getInstance(id);
-      setInstance(data);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 403) {
-        setPaymentRequired(true);
-      } else {
-        notFound();
-      }
-    } finally {
-      setLoading(false);
+ const loadInstance = useCallback(async () => {
+  if (!id) return;
+  setLoading(true);
+  setPaymentRequired(false);
+  try {
+    await selectInstance({ instanceId: id });
+    const data = await getInstance(id);
+    setInstance(data);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 403) {
+      setPaymentRequired(true);
+    } else {
+      notFound();
     }
-  }, [id, selectInstance]);
+  } finally {
+    setLoading(false);
+    // silent connect after loading the instance
+    try {
+      await connect();
+    } catch {
+      // silent
+    }
+  }
+}, [id, selectInstance]);
 
   const handleCopy = async (value: string, field: string) => {
     if (!value) return;
@@ -113,22 +117,22 @@ export function InstanceDetailView({
     }
   };
 
-  const handleConnectWhatsApp = async () => {
-    setConnectingWa(true);
-    try {
-      await connect();
-      toast.success("WhatsApp connecting... QR code will appear below.");
-    } catch (err: unknown) {
-      const msg = (err as { message?: string })?.message ?? "";
-      if (msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout")) {
-        toast.info("WhatsApp is starting up. Check the section below.");
-      } else {
-        toast.error(msg || "Failed to connect WhatsApp");
-      }
-    } finally {
-      setConnectingWa(false);
-    }
-  };
+  // const handleConnectWhatsApp = async () => {
+  //   setConnectingWa(true);
+  //   try {
+  //     await connect();
+  //     toast.success("WhatsApp connecting... QR code will appear below.");
+  //   } catch (err: unknown) {
+  //     const msg = (err as { message?: string })?.message ?? "";
+  //     if (msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout")) {
+  //       toast.info("WhatsApp is starting up. Check the section below.");
+  //     } else {
+  //       toast.error(msg || "Failed to connect WhatsApp");
+  //     }
+  //   } finally {
+  //     setConnectingWa(false);
+  //   }
+  // };
 
   const handleWhatsAppDisconnect = async (reason: "logout" | "change") => {
     setWhatsAppAction(reason === "logout" ? "disconnect" : "change");
@@ -177,6 +181,21 @@ export function InstanceDetailView({
       setWhatsAppAction(null);
     }
   };
+// TODO: when backend is ready, add:
+  // useEffect(() => {
+//   if (!paymentSuccess || !instance || loading) return;
+//
+//   const autoConnectAfterPayment = async () => {
+//     try {
+//       await connect();
+//       toast.success("WhatsApp connecting after payment...");
+//     } catch {
+//       // silent — user connects manually
+//     }
+//   };
+//
+//   autoConnectAfterPayment();
+// }, [paymentSuccess, instance, loading]);
 
   useEffect(() => {
     loadInstance();
@@ -314,7 +333,7 @@ export function InstanceDetailView({
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">Credentials</CardTitle>
                 {/* ✅ Connect WhatsApp button */}
-                <Button
+                {/* <Button
                   size="sm"
                   variant="outline"
                   className="gap-2 border-[#7C3AED] text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white"
@@ -325,7 +344,7 @@ export function InstanceDetailView({
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Wifi className="h-4 w-4" />}
                   {connectingWa ? "Connecting..." : "Connect WhatsApp"}
-                </Button>
+                </Button> */}
               </div>
             </CardHeader>
             <CardContent className="p-0">

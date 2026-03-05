@@ -28,6 +28,13 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface LoginResponse {
+  accessToken: string;
+  user: User;
+  requires2fa?: boolean;
+  twoFactorToken?: string;
+}
+
 export interface RegisterRequest {
   name: string;
   email: string;

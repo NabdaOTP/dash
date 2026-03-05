@@ -15,11 +15,10 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/features/auth/context/auth-context";
 import * as billingService from "@/features/billing/services/billing-service";
-import * as whatsappService from "@/features/whatsapp/services/whatsapp-service";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import {
-  CalendarPlus, CreditCard, Eye, Loader2,
-  MoreHorizontal, Pencil, Plus, Search, Server, Trash2,
+  CalendarPlus, CreditCard, Loader2, PanelTopClose, PanelTopOpen,
+  Pencil, Plus, Rocket, Search, Server, Trash2,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
@@ -39,7 +38,7 @@ const statusStyles: Record<string, string> = {
 };
 
 function isTrialInstance(inst: Instance) {
-  return inst.status === "TRIAL" || inst.status === "ACTIVE" || inst.expiresAt != null;
+  return inst.isTrialInstance === true || inst.status === "TRIAL" || inst.expiresAt != null;
 }
 
 function getRowBg(status: string) {
@@ -49,13 +48,20 @@ function getRowBg(status: string) {
   return "";
 }
 
-function formatTrialEnd(trialEnd: string | null | undefined, locale: string): string {
-  if (!trialEnd) return "—";
+// ✅ date form
+function formatDate(dateStr: string): string {
   try {
-    return new Date(trialEnd).toLocaleDateString(locale, {
-      year: "numeric", month: "short", day: "numeric",
-    });
+    const d = new Date(dateStr);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   } catch { return "—"; }
+}
+
+function formatTrialEnd(trialEnd: string | null | undefined): string {
+  if (!trialEnd) return "—";
+  return formatDate(trialEnd);
 }
 
 export function InstancesPage() {
@@ -75,13 +81,14 @@ export function InstancesPage() {
   });
   const [payingInstanceId, setPayingInstanceId] = useState<string | null>(null);
   const [extendTrialId, setExtendTrialId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showExtendTrialConfirm, setShowExtendTrialConfirm] = useState<string | null>(null);
-
   const t = useTranslations("instances");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const { selectInstance } = useAuth();
+
   const fetchInstances = useCallback(async () => {
     try {
       const data = await instancesService.getMyInstances();
@@ -105,10 +112,7 @@ export function InstancesPage() {
       const created = await instancesService.createInstance();
 
       if (isFirstInstance) {
-        // 1. Select instance to activate scoped token
         await selectInstance({ instanceId: created.id });
-
-        // 2. Start trial
         try {
           const plans = await billingService.getPlans();
           const planId = plans[0]?.id;
@@ -126,13 +130,6 @@ export function InstancesPage() {
           if (!isAlreadyExists) {
             toast.error(message || "Failed to start trial");
           }
-        }
-
-        // 3. Auto-connect WhatsApp silently
-        try {
-          await whatsappService.connect();
-        } catch {
-          
         }
       }
 
@@ -224,6 +221,22 @@ export function InstancesPage() {
     }
   };
 
+  function getDisplayExpiry(inst: Instance): string {
+  if (!inst.expiresAt) return "—";
+  
+  const expires = new Date(inst.expiresAt);
+  const created = new Date(inst.createdAt);
+  
+  // لو الـ expiresAt نفس اليوم من الـ createdAt → الـ backend غلطان، نحسبها manually
+  const sameDay = expires.toDateString() === created.toDateString();
+  if (sameDay && !inst.isTrialInstance) {
+    const calculated = new Date(created);
+    calculated.setMonth(calculated.getMonth() + 1);
+    return formatDate(calculated.toISOString());
+  }
+  
+  return formatDate(inst.expiresAt);
+}
   const filtered = instances.filter((inst) =>
     inst.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -297,67 +310,59 @@ export function InstancesPage() {
               <TableBody>
                 {sortedInstances.map((inst) => {
                   const isPending = inst.status === "PAYMENT_PENDING";
-                  const isTrial = inst.status === "TRIAL";
-
+                  //  is trail condition to view or hide the pay button
+                  const isTrial = inst.status === "TRIAL" || inst.isTrialInstance === true;
+                  const isActive = inst.status === "ACTIVE" || inst.status === "active";
+                  //  Pay: show always for free trail and hide it when the user pay
+                  const showPay = isTrial || isPending;
                   return (
-                    <>
-                      <Fragment key={inst.id}>
-
-                        <TableRow
-                          className={`transition-colors ${getRowBg(inst.status)} ${isPending ? "cursor-not-allowed opacity-90" : "cursor-pointer"}`}
-                          onClick={() => !isPending && router.push(`/${locale}/instances/${inst.id}`)}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Server className="h-4 w-4 text-primary" />
-                              </div>
-                              <span className="font-medium">{inst.name}</span>
+                    <Fragment key={inst.id}>
+                      <TableRow
+                        className={`transition-colors ${getRowBg(inst.status)} ${isPending ? "cursor-not-allowed opacity-90" : "cursor-pointer"}`}
+                        onClick={() => !isPending && router.push(`/${locale}/instances/${inst.id}`)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <Server className="h-4 w-4 text-primary" />
                             </div>
-                          </TableCell>
-                          <TableCell>{new Date(inst.createdAt).toLocaleDateString(locale)}</TableCell>
-                          <TableCell>
-                            {isTrialInstance(inst) ? formatTrialEnd(inst.expiresAt ?? inst.trialEnd, locale) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] ?? "bg-muted text-muted-foreground"}`}>
-                              {inst.status === "PAYMENT_PENDING" ? "Payment Pending" : inst.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1 flex-wrap">
+                            <span className="font-medium">{inst.name}</span>
+                          </div>
+                        </TableCell>
 
-                              {/* Eye — hidden for PAYMENT_PENDING */}
-                              {!isPending && (
-                                <Link href={`/${locale}/instances/${inst.id}`}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                    <Eye className="h-4 w-4 text-muted-foreground" />
-                                  </Button>
-                                </Link>
-                              )}
+                        {/* ✅ date: yyyy-MM-dd */}
+                        <TableCell>{formatDate(inst.createdAt)}</TableCell>
+                        <TableCell>
+                          {/* {isTrialInstance(inst) ? formatTrialEnd(inst.expiresAt ?? inst.trialEnd) : "—"} */}
+                          {getDisplayExpiry(inst)}
+                        </TableCell>
 
-                              {/* Edit — hidden for PAYMENT_PENDING */}
-                              {!isPending && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8"
-                                  onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}
+                        <TableCell>
+                          <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] ?? "bg-muted text-muted-foreground"}`}>
+                            {inst.status === "PAYMENT_PENDING" ? "Payment Pending" : inst.status}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1 flex-wrap">
+
+                            {/* ✅ instead of eye icon */}
+                            {!isPending && (
+                              <Link href={`/${locale}/instances/${inst.id}`}>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  className="bg-blue-500 hover:bg-blue-600 text-white gap-1.5"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                                  <Rocket className="h-3.5 w-3.5" />
+                                  Manage
                                 </Button>
-                              )}
+                              </Link>
+                            )}
 
-                              {/* Trash — only for PAYMENT_PENDING */}
-                              {isPending && instances.length > 1 && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8"
-                                  onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(inst.id); }}
-                                  disabled={deletingId === inst.id}
-                                >
-                                  {deletingId === inst.id
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <Trash2 className="h-4 w-4 text-destructive" />}
-                                </Button>
-                              )}
-
-                              {/* Pay — show for all */}
+                            {/* ✅ Pay — trail and payment pending*/}
+                            {showPay && (
                               <Button
                                 variant="default" size="sm"
                                 className="bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white gap-2"
@@ -369,41 +374,70 @@ export function InstancesPage() {
                                   : <CreditCard className="h-4 w-4" />}
                                 {payingInstanceId === inst.id ? "Redirecting…" : "Pay"}
                               </Button>
+                            )}
 
-                              {/* More — only for TRIAL */}
-                              {isTrial && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuItem
-                                      onClick={(e) => { e.stopPropagation(); setShowExtendTrialConfirm(inst.id); }}
-                                      disabled={!!extendTrialId}
-                                    >
-                                      {extendTrialId === inst.id
-                                        ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                                        : <CalendarPlus className="h-4 w-4 me-2" />}
-                                      Extend Trial
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </Fragment>
+                            {/* ✅ More menu */}
+                            <DropdownMenu
+                              open={openMenuId === inst.id}
+                              onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}
+                            >
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                  {openMenuId === inst.id
+                                    ? <PanelTopClose className="h-4 w-4 text-muted-foreground" />
+                                    : <PanelTopOpen className="h-4 w-4 text-muted-foreground" />}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+
+                                {/* Edit — show for active and trail */}
+                                {!isPending && (
+                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}>
+                                    <Pencil className="h-4 w-4 me-2" />
+                                    Edit Name
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* Extend Trial — just for trail*/}
+                                {isTrial && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => { e.stopPropagation(); setShowExtendTrialConfirm(inst.id); }}
+                                    disabled={!!extendTrialId}
+                                  >
+                                    {extendTrialId === inst.id
+                                      ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                      : <CalendarPlus className="h-4 w-4 me-2" />}
+                                    Extend Trial
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* Trash — just for payment pending*/}
+                                {isPending && instances.length > 1 && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(inst.id); }}
+                                    disabled={deletingId === inst.id}
+                                  >
+                                    {deletingId === inst.id
+                                      ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                      : <Trash2 className="h-4 w-4 me-2" />}
+                                    Delete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
 
                       {isPending && (
-                        <TableRow key={`${inst.id}-warning`} className="bg-red-50 dark:bg-red-950/20">
+                        <TableRow className="bg-red-50 dark:bg-red-950/20">
                           <TableCell colSpan={5} className="py-2 px-6 text-sm text-red-600 dark:text-red-400 border-t border-red-100 dark:border-red-900">
                             Your instance has been Stopped due to non-payment. You can activate this instance by extending your subscription.
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
@@ -411,7 +445,6 @@ export function InstancesPage() {
           </div>
         </div>
       )}
-
       {/* Dialogs */}
       <Dialog open={showCreateConfirm} onOpenChange={setShowCreateConfirm}>
         <DialogContent>
@@ -430,7 +463,6 @@ export function InstancesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <Dialog open={creatingdia} onOpenChange={setCreatingdia}>
         <DialogContent className="bg-card max-w-md">
           <div className="flex flex-col items-center py-8">

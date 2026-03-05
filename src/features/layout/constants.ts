@@ -1,12 +1,11 @@
 import {
-  LayoutDashboard,
-  Server,
-  MessageSquare,
-  CreditCard,
   BookOpen,
+  CreditCard,
   HelpCircle,
+  LayoutDashboard,
   Mail,
-  type LucideIcon,
+  Server,
+  type LucideIcon
 } from "lucide-react";
 
 export interface NavItem {

@@ -11,12 +11,19 @@ import type {
 } from "../types";
 
 export interface LoginResponse {
-  accessToken: string;
-  user: User;
+  accessToken?: string; 
+  user?: User;           
+  requires2fa?: boolean; 
+  twoFactorToken?: string;
 }
 
 export interface RegisterResponse {
   message: string;
+}
+
+export interface Verify2FAResponse {
+  accessToken: string;
+  user: User;
 }
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
@@ -31,9 +38,13 @@ export async function verifyOtp(data: VerifyOtpRequest): Promise<LoginResponse> 
   return api.post<LoginResponse>("/api/v1/auth/verify-otp", data);
 }
 
-// export async function selectInstance(data: SelectInstanceRequest): Promise<void> {
-//   return api.post<void>("/api/v1/auth/select-instance", data);
-// }
+// ✅ 2FA verify after login
+export async function verify2FA(code: string, twoFactorToken?: string): Promise<Verify2FAResponse> {
+  return api.post<Verify2FAResponse>("/api/v1/auth/confirm-2fa", {
+    code,
+    ...(twoFactorToken ? { twoFactorToken } : {}),
+  });
+}
 
 export async function selectInstance(data: SelectInstanceRequest): Promise<SelectInstanceResponse> {
   return api.post<SelectInstanceResponse>("/api/v1/auth/select-instance", data);

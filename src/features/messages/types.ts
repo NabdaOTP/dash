@@ -13,6 +13,16 @@ export interface MessagesResponse {
   limit: number;
 }
 
+export interface MessagesApiResponse {
+  items: Message[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface SendMessageRequest {
   phone: string;
   message: string;
