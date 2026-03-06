@@ -1,32 +1,16 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import {
-  ArrowRight,
-  BookOpen,
-  Layers,
-  Loader2,
-  Plus
-} from "lucide-react";
+import { ArrowRight, BookOpen, Layers, Loader2, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
-
-type WaStep = "idle" | "connecting" | "awaiting_scan";
 
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const t = useTranslations("dashboard");
   const locale = useLocale();
-
-  const stopPolling = () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
 
   const fetchData = async () => {
     try {
@@ -41,9 +25,9 @@ export function DashboardPage() {
 
   useEffect(() => {
     fetchData();
-    return () => stopPolling();
+    const interval = setInterval(fetchData, 15000);
+    return () => clearInterval(interval);
   }, []);
-
 
   if (loading) {
     return (
@@ -58,14 +42,11 @@ export function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Welcome */}
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">{t("welcome")}</h1>
       </div>
 
-      {/* UltraMsg-style Instance Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Active Instances */}
         <div className="rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#4caf50] p-6 flex items-center justify-between">
             <div>
@@ -85,7 +66,6 @@ export function DashboardPage() {
           </Link>
         </div>
 
-        {/* Stopped Instances */}
         <div className="rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#f44336] p-6 flex items-center justify-between">
             <div>
@@ -106,7 +86,6 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href="/instances"

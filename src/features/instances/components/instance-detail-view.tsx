@@ -390,14 +390,16 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
                       Automatically renew your subscription when it expires
                     </p>
                   </div>
-                  <Switch
-                    checked={autoRenew}
-                    onCheckedChange={handleAutoRenewChange}
-                    disabled={autoRenewLoading}
-                  />
-                  {autoRenewLoading && (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
+                  <div className="flex items-center gap-2">
+                    {autoRenewLoading && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    <Switch
+                      checked={autoRenew}
+                      onCheckedChange={handleAutoRenewChange}
+                      disabled={autoRenewLoading}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
