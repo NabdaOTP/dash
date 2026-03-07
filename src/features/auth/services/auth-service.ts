@@ -38,12 +38,8 @@ export async function verifyOtp(data: VerifyOtpRequest): Promise<LoginResponse> 
   return api.post<LoginResponse>("/api/v1/auth/verify-otp", data);
 }
 
-// ✅ 2FA verify after login
-export async function verify2FA(code: string, twoFactorToken?: string): Promise<Verify2FAResponse> {
-  return api.post<Verify2FAResponse>("/api/v1/auth/confirm-2fa", {
-    code,
-    ...(twoFactorToken ? { twoFactorToken } : {}),
-  });
+export async function verify2FA(code: string, email: string): Promise<LoginResponse> {
+  return api.post<LoginResponse>("/api/v1/auth/verify-otp", { email, code });
 }
 
 export async function selectInstance(data: SelectInstanceRequest): Promise<SelectInstanceResponse> {

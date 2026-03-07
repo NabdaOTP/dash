@@ -27,7 +27,8 @@ export async function getMessages(params?: {
   };
 }
 
-export async function sendMessage(body: SendMessageRequest): Promise<void> {
-  await api.post<void>("/api/v1/messages/send", body, instanceScope);
+export async function sendMessage(body: SendMessageRequest, apiKey: string): Promise<void> {
+  await api.post<void>("/api/v1/messages/send", body, {
+    headers: { Authorization: apiKey },
+  });
 }
-

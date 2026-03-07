@@ -12,12 +12,17 @@ import Link from "next/link";
 import { RefreshCw, Send, Loader2 } from "lucide-react";
 import { getQrCode, getStatus, connect, disconnect, restart } from "../services/whatsapp-service";
 import { sendMessage } from "@/features/messages/services/messages-service";
-import type { WhatsAppStatus, WhatsAppQrResponse } from "../types";
+import { getInstance } from "@/features/instances/services/instances-service";
+import type { WhatsAppStatus } from "../types";
 import { toast } from "sonner";
 
 interface WhatsAppSectionProps {
   instanceId: string;
   locale?: string;
+}
+
+function normalizeStatus(status: string): string {
+  return status?.toLowerCase() ?? "";
 }
 
 function WhatsAppSkeleton() {
@@ -42,7 +47,6 @@ function WhatsAppSkeleton() {
           </div>
         </div>
       </div>
-
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="p-6 border-b border-border">
           <Skeleton className="h-6 w-44" />
@@ -69,6 +73,7 @@ function WhatsAppSkeleton() {
 export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionProps) {
   const [status, setStatus] = useState<WhatsAppStatus | null>(null);
   const [qr, setQr] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; is401?: boolean } | null>(null);
   const [sendPhone, setSendPhone] = useState("");
@@ -80,22 +85,35 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const fetchData = useCallback(async (isInitial = false) => {
     try {
       setError(null);
-      const stat = await getStatus();
-      setStatus(stat);
 
-      if (stat.status === "qr_ready" || stat.status === "disconnected") {
-        try {
-          const qrRes = await getQrCode();
-          const qrValue = qrRes && typeof qrRes === "object" && "qr" in qrRes
-            ? (qrRes as WhatsAppQrResponse).qr
-            : null;
-          setQr(qrValue ?? null);
-        } catch {
-          setQr(null);
+      const [stat, inst] = await Promise.allSettled([
+        getStatus(),
+        getInstance(instanceId),
+      ]);
+
+      if (stat.status === "fulfilled") {
+        setStatus(stat.value);
+        if (stat.value.qr) {
+          setQr(stat.value.qr);
+        } else {
+          const normalized = normalizeStatus(stat.value.status);
+          if (normalized === "qr_ready" || normalized === "disconnected") {
+            try {
+              const qrRes = await getQrCode();
+              setQr(qrRes?.qr ?? null);
+            } catch {
+              setQr(null);
+            }
+          } else {
+            setQr(null);
+          }
         }
-      } else {
-        setQr(null);
       }
+
+      if (inst.status === "fulfilled" && inst.value.apiKey) {
+        setApiKey(inst.value.apiKey);
+      }
+
     } catch (err: unknown) {
       const errStatus = (err as { status?: number })?.status;
       if (errStatus === 403) {
@@ -111,30 +129,36 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [instanceId]);
 
-  // ✅ single useEffect only
   useEffect(() => {
     if (error?.is401) return;
     fetchData(true);
-    const interval = setInterval(() => fetchData(false), 10000);
+    const interval = setInterval(() => fetchData(false), 30000);
     return () => clearInterval(interval);
   }, [instanceId, fetchData, error?.is401]);
 
   const handleRefreshQr = useCallback(async () => {
-    if (status?.status === "connected") return;
+    if (normalizeStatus(status?.status ?? "") === "connected") return;
     setRefreshingQr(true);
 
     let attempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = 10;
 
     const tryGetQr = async (): Promise<void> => {
       attempts++;
       try {
+        const stat = await getStatus();
+        setStatus(stat);
+        if (stat.qr) {
+          setQr(stat.qr);
+          toast.success("QR code ready. Scan to connect.");
+          setRefreshingQr(false);
+          return;
+        }
         const r = await getQrCode();
-        const qrValue = r?.qr ?? null;
-        if (qrValue) {
-          setQr(qrValue);
+        if (r?.qr) {
+          setQr(r.qr);
           toast.success("QR code ready. Scan to connect.");
           setRefreshingQr(false);
           return;
@@ -142,7 +166,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       } catch {}
 
       if (attempts < maxAttempts) {
-        await new Promise((res) => setTimeout(res, 3000));
+        await new Promise((res) => setTimeout(res, 5000));
         await tryGetQr();
       } else {
         toast.error("QR code not ready. Try clicking Connect again.");
@@ -154,26 +178,22 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   }, [status?.status]);
 
   const handleConnect = useCallback(async () => {
-    if (status?.status === "connected") return;
+    if (normalizeStatus(status?.status ?? "") === "connected") return;
     setConnecting(true);
     try {
-      if (status?.status !== "connecting") {
+      if (normalizeStatus(status?.status ?? "") !== "connecting") {
         await connect();
       }
-      await new Promise((res) => setTimeout(res, 3000));
-      await handleRefreshQr();
+      toast.info("WhatsApp is starting up. QR code will appear automatically...");
     } catch (err: unknown) {
       const msg = (err as { message?: string })?.message ?? "Failed to connect";
-      if (msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout")) {
-        toast.info("WhatsApp is starting up. Please wait...");
-        await handleRefreshQr();
-      } else {
+      if (!msg.toLowerCase().includes("timed out") && !msg.toLowerCase().includes("timeout")) {
         toast.error(msg);
       }
     } finally {
       setConnecting(false);
     }
-  }, [status?.status, handleRefreshQr]);
+  }, [status?.status]);
 
   const handleSendMessage = useCallback(async () => {
     const phone = sendPhone.trim();
@@ -186,9 +206,13 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       toast.error("Phone must start with + and include country code");
       return;
     }
+    if (!apiKey) {
+      toast.error("API key not available. Please refresh the page.");
+      return;
+    }
     setSending(true);
     try {
-      await sendMessage({ phone, message });
+      await sendMessage({ phone, message }, apiKey);
       toast.success("Message sent");
       setSendText("");
     } catch (err: unknown) {
@@ -204,11 +228,9 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     } finally {
       setSending(false);
     }
-  }, [sendPhone, sendText]);
+  }, [sendPhone, sendText, apiKey]);
 
-  if (loading) {
-    return <WhatsAppSkeleton />;
-  }
+  if (loading) return <WhatsAppSkeleton />;
 
   if (error) {
     return (
@@ -225,6 +247,10 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       </div>
     );
   }
+
+  const normalizedStatus = normalizeStatus(status?.status ?? "");
+  const isConnected = normalizedStatus === "connected";
+  const displayPhone = status?.phoneNumber || status?.phone;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
@@ -245,7 +271,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
             <div className="text-center py-10 bg-muted/40 rounded-lg">
               <p className="text-lg font-medium">No QR code available</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {status?.status === "connected"
+                {isConnected
                   ? "Your WhatsApp is already connected"
                   : "Click Connect to generate a QR code"}
               </p>
@@ -260,18 +286,11 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           </ol>
 
           <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={handleConnect}
-              disabled={status?.status === "connected" || connecting}
-            >
+            <Button onClick={handleConnect} disabled={isConnected || connecting}>
               {connecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Connect
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleRefreshQr}
-              disabled={status?.status === "connected" || refreshingQr}
-            >
+            <Button variant="outline" onClick={handleRefreshQr} disabled={isConnected || refreshingQr}>
               {refreshingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Refresh QR
             </Button>
@@ -286,14 +305,14 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
         <CardContent className="space-y-6">
           <div>
             <Badge
-              variant={status?.status === "connected" ? "default" : "secondary"}
+              variant={isConnected ? "default" : "secondary"}
               className="text-base px-4 py-1.5"
             >
               {status?.status?.toUpperCase() || "UNKNOWN"}
             </Badge>
-            {status?.phone && (
+            {displayPhone && (
               <p className="mt-3 text-sm">
-                <strong>Phone:</strong> {status.phone}
+                <strong>Phone:</strong> {displayPhone}
               </p>
             )}
           </div>
@@ -338,41 +357,27 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
             <div className="space-y-2">
               <Label htmlFor="send-phone">Phone number</Label>
               <Input
-                id="send-phone"
-                placeholder="+201012345678"
-                value={sendPhone}
-                onChange={(e) => setSendPhone(e.target.value)}
-                disabled={sending}
-                className="font-mono"
+                id="send-phone" placeholder="+201012345678"
+                value={sendPhone} onChange={(e) => setSendPhone(e.target.value)}
+                disabled={sending} className="font-mono"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="send-message">Message</Label>
               <Textarea
-                id="send-message"
-                placeholder="Your message here..."
-                value={sendText}
-                onChange={(e) => setSendText(e.target.value)}
-                disabled={sending}
-                rows={3}
-                className="resize-none"
+                id="send-message" placeholder="Your message here..."
+                value={sendText} onChange={(e) => setSendText(e.target.value)}
+                disabled={sending} rows={3} className="resize-none"
               />
             </div>
             <Button
-              onClick={handleSendMessage}
-              disabled={sending}
+              onClick={handleSendMessage} disabled={sending || !apiKey}
               className="w-full bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white"
             >
               {sending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Sending...
-                </>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
               ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Message
-                </>
+                <><Send className="h-4 w-4 mr-2" />Send Message</>
               )}
             </Button>
           </div>

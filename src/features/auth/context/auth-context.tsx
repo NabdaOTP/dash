@@ -21,6 +21,7 @@ import * as authService from "../services/auth-service";
 
 interface AuthContextValue extends AuthState {
   login: (data: LoginRequest) => Promise<authService.LoginResponse>;
+  loginWithToken: (accessToken: string, userData: User) => void;
   register: (data: RegisterRequest) => Promise<authService.RegisterResponse>;
   verifyOtp: (data: VerifyOtpRequest) => Promise<void>;
   selectInstance: (data: SelectInstanceRequest) => Promise<void>;
@@ -31,12 +32,10 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function setTokenCookie(token: string) {
-  // document.cookie = `nadba-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
   document.cookie = `nadba-token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
 }
 
 function setInstanceTokenCookie(token: string) {
-  // document.cookie = `nadba-instance-token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
   document.cookie = `nadba-instance-token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
@@ -50,7 +49,6 @@ function saveToken(token: string) {
   setTokenCookie(token);
 }
 
-/** Store instance-scoped token (from select-instance). */
 function saveInstanceToken(token: string, instanceId: string) {
   localStorage.setItem("nadba-instance-token", token);
   localStorage.setItem("nadba-instance", instanceId);
@@ -67,12 +65,9 @@ function clearAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
-    null
-  );
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem("nadba-token");
     const storedInstance = localStorage.getItem("nadba-instance");
@@ -82,15 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(storedToken);
       setTokenCookie(storedToken);
       if (storedInstance) setSelectedInstanceId(storedInstance);
-      if (storedInstanceToken) {
-        setInstanceTokenCookie(storedInstanceToken);
-      }
+      if (storedInstanceToken) setInstanceTokenCookie(storedInstanceToken);
 
       authService
         .getMe()
-        .then((userData) => {
-          setUser(userData);
-        })
+        .then((userData) => setUser(userData))
         .catch(() => {
           clearAuth();
           setToken(null);
@@ -101,25 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
-
-  // const login = useCallback(async (data: LoginRequest) => {
-  //   const response = await authService.login(data);
-  //   const accessToken = response.accessToken || (response as unknown as Record<string, string>).access_token;
-  //   if (!accessToken) {
-  //     throw new Error("No access token in login response");
-  //   }
-  //   saveToken(accessToken);
-  //   setToken(accessToken);
-
-  //   if (response.user) {
-  //     setUser(response.user);
-  //   } else {
-  //     // Some APIs don't return user in login response — fetch separately
-  //     const userData = await authService.getMe();
-  //     setUser(userData);
-  //   }
-  //   return response;
-  // }, []);
 
   const login = useCallback(async (data: LoginRequest) => {
     const response = await authService.login(data);
@@ -143,53 +115,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return response;
   }, []);
+
+  const loginWithToken = useCallback((accessToken: string, userData: User) => {
+    saveToken(accessToken);
+    setToken(accessToken);
+    setUser(userData);
+  }, []);
+
   const register = useCallback(async (data: RegisterRequest) => {
     return authService.register(data);
   }, []);
 
-  // const verifyOtp = useCallback(async (data: VerifyOtpRequest) => {
-  //   const response = await authService.verifyOtp(data);
-  //   setToken(response.accessToken);
-  //   setUser(response.user);
-  //   saveToken(response.accessToken);
-  // }, []);
   const verifyOtp = useCallback(async (data: VerifyOtpRequest) => {
-  const response = await authService.verifyOtp(data);
-  if (response.accessToken) {  // ✅ check before usage
-    setToken(response.accessToken);
-    saveToken(response.accessToken);
-  }
-  if (response.user) {
-    setUser(response.user);
-  }
-}, []);
+    const response = await authService.verifyOtp(data);
+    if (response.accessToken) {
+      setToken(response.accessToken);
+      saveToken(response.accessToken);
+    }
+    if (response.user) {
+      setUser(response.user);
+    }
+  }, []);
 
-  // const selectInstance = useCallback(
-  //   async (data: SelectInstanceRequest) => {
-  //     await authService.selectInstance(data);
-  //     setSelectedInstanceId(data.instanceId);
-  //     localStorage.setItem("nadba-instance", data.instanceId);
-  //   },
-  //   []
-  // );
-
-  const selectInstance = useCallback(
-    async (data: SelectInstanceRequest) => {
-      const response = await authService.selectInstance(data);
-      const accessToken = response?.accessToken ?? (response as unknown as Record<string, string>)?.access_token;
-      if (accessToken) {
-        saveInstanceToken(accessToken, data.instanceId);
-      }
-      setSelectedInstanceId(data.instanceId);
-    },
-    []
-  );
+  const selectInstance = useCallback(async (data: SelectInstanceRequest) => {
+    const response = await authService.selectInstance(data);
+    const accessToken = response?.accessToken ?? (response as unknown as Record<string, string>)?.access_token;
+    if (accessToken) {
+      saveInstanceToken(accessToken, data.instanceId);
+    }
+    setSelectedInstanceId(data.instanceId);
+  }, []);
 
   const handleLogout = useCallback(async () => {
     try {
       await authService.logout();
     } catch {
-      // Logout even if API call fails
+      // logout even if API call fails
     }
     setUser(null);
     setToken(null);
@@ -211,13 +172,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!token && !!user,
       isLoading,
       login,
+      loginWithToken,
       register,
       verifyOtp,
       selectInstance,
       logout: handleLogout,
       refreshUser,
     }),
-    [user, token, selectedInstanceId, isLoading, login, register, verifyOtp, selectInstance, handleLogout, refreshUser]
+    [user, token, selectedInstanceId, isLoading, login, loginWithToken, register, verifyOtp, selectInstance, handleLogout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

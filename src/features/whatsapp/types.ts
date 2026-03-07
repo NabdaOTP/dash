@@ -1,7 +1,12 @@
 export interface WhatsAppStatus {
-  status: "connected" | "disconnected" | "connecting" | "qr_ready"| "reconnecting";
+  
+  status: "CONNECTED" | "DISCONNECTED" | "CONNECTING" | "QR_READY" | "RECONNECTING"
+        | "connected" | "disconnected" | "connecting" | "qr_ready" | "reconnecting";
   phone?: string;
+  phoneNumber?: string;  
+  qr?: string | null;     
   connectedAt?: string;
+  lastConnectedAt?: string;
 }
 
 export interface WhatsAppQrResponse {

@@ -19,43 +19,32 @@ type Step = "credentials" | "2fa";
 
 export function LoginForm() {
   const [step, setStep] = useState<Step>("credentials");
-
-  // Step 1
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Step 2 — 2FA
   const [twoFactorCode, setTwoFactorCode] = useState("");
-  const [twoFactorToken, setTwoFactorToken] = useState<string | undefined>();
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
   const t = useTranslations("auth");
-  const { login } = useAuth();
+  const { login, loginWithToken } = useAuth();
 
-  // ─── Step 1: Email + Password ───────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
       const response = await login({ email, password });
-
       if ((response as Record<string, unknown>)?.requires2fa) {
-        setTwoFactorToken(response.twoFactorToken);
         setStep("2fa");
         return;
       }
-
       router.push("/dashboard");
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401 || err.status === 400) {
           setError(t("errors.invalidCredentials"));
         } else if (err.status === 403) {
-
           const msg = (err.data as Record<string, unknown>)?.message as string ?? "";
           if (msg.toLowerCase().includes("2fa") || msg.toLowerCase().includes("two")) {
             setStep("2fa");
@@ -73,7 +62,6 @@ export function LoginForm() {
     }
   };
 
-  // ─── Step 2: 2FA Code ────────────────────────────────────────────────────
   const handle2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (twoFactorCode.length !== 6) {
@@ -83,29 +71,14 @@ export function LoginForm() {
     setError("");
     setLoading(true);
     try {
-      await authService.verify2FA(twoFactorCode, twoFactorToken);
+      const result = await authService.verify2FA(twoFactorCode, email);
+      if (result?.accessToken && result?.user) {
+        loginWithToken(result.accessToken, result.user);
+      }
       router.push("/dashboard");
-
-      // ! after backend adjustment
-      // const result = await authService.verify2FA(twoFactorCode, twoFactorToken);
-      // if (result.accessToken) {
-      //   saveToken(result.accessToken);  // أو نعمله في auth-context
-      // }
-      // ^ ^ OR
-      // const result = await authService.verify2FA(twoFactorCode, twoFactorToken);
-      // if (result?.accessToken) {
-      //   // ✅ We need to perform a full login so the context is updated.
-      //   await login({ email, password });
-      // }
-      // router.push("/dashboard");
-
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 401 || err.status === 400) {
-          setError("Invalid or expired code. Please try again.");
-        } else {
-          setError(err.message || t("errors.generic"));
-        }
+        setError("Invalid or expired code. Please try again.");
       } else {
         setError(t("errors.generic"));
       }
@@ -116,37 +89,25 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4">
-        <a
-          href="https://www.nabdaotp.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3"
-        >
+        <a href="https://www.nabdaotp.com/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
           <div className="h-14 w-14 flex items-center justify-center">
             <Image src="/logo.png" alt="Nabda OTP Logo" width={50} height={50} />
           </div>
-          <span className="font-bold text-xl text-foreground tracking-tight">
-            Nabda OTP
-          </span>
+          <span className="font-bold text-xl text-foreground tracking-tight">Nabda OTP</span>
         </a>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
         </div>
       </div>
 
-      {/* Main */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md space-y-8 animate-fade-in">
 
-          {/* ─── Step 1: Credentials ─── */}
           {step === "credentials" && (
             <>
               <div className="text-center space-y-3">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {t("login.title")}
-                </h1>
+                <h1 className="text-2xl font-bold text-foreground">{t("login.title")}</h1>
               </div>
 
               <div className="flex items-center gap-4">
@@ -169,14 +130,9 @@ export function LoginForm() {
                     {t("login.email")}
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 bg-background"
-                    required
-                    disabled={loading}
+                    id="email" type="email" placeholder="you@example.com"
+                    value={email} onChange={(e) => setEmail(e.target.value)}
+                    className="h-11 bg-background" required disabled={loading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -189,24 +145,16 @@ export function LoginForm() {
                     </Link>
                   </div>
                   <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 bg-background"
-                    required
-                    disabled={loading}
+                    id="password" type="password" placeholder="••••••••"
+                    value={password} onChange={(e) => setPassword(e.target.value)}
+                    className="h-11 bg-background" required disabled={loading}
                   />
                 </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
+                <Button type="submit" disabled={loading}
                   className="w-full h-11 gradient-primary text-primary-foreground font-medium"
                 >
                   {loading ? t("login.submitting") : t("login.submit")}
                 </Button>
-
                 <p className="text-center text-xs text-muted-foreground leading-relaxed">
                   {t("login.termsText")}{" "}
                   <a href="https://www.nabdaotp.com/terms-of-service.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
@@ -228,7 +176,6 @@ export function LoginForm() {
             </>
           )}
 
-          {/* ─── Step 2: 2FA Code ─── */}
           {step === "2fa" && (
             <>
               <div className="text-center space-y-3">
@@ -272,7 +219,6 @@ export function LoginForm() {
                     autoFocus
                   />
                 </div>
-
                 <Button
                   type="submit"
                   disabled={loading || twoFactorCode.length !== 6}
@@ -280,7 +226,6 @@ export function LoginForm() {
                 >
                   {loading ? "Verifying..." : "Verify & Sign In"}
                 </Button>
-
                 <button
                   type="button"
                   onClick={() => { setStep("credentials"); setError(""); setTwoFactorCode(""); }}
