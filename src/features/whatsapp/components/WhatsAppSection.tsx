@@ -15,6 +15,7 @@ import { sendMessage } from "@/features/messages/services/messages-service";
 import { getInstance } from "@/features/instances/services/instances-service";
 import type { WhatsAppStatus } from "../types";
 import { toast } from "sonner";
+import QRCode from "qrcode";
 
 interface WhatsAppSectionProps {
   instanceId: string;
@@ -23,6 +24,14 @@ interface WhatsAppSectionProps {
 
 function normalizeStatus(status: string): string {
   return status?.toLowerCase() ?? "";
+}
+
+async function generateQrDataUrl(qrString: string): Promise<string> {
+  if (qrString.startsWith("data:image")) return qrString;
+  if (!qrString.includes(",") && !qrString.includes("@")) {
+    return `data:image/png;base64,${qrString}`;
+  }
+  return QRCode.toDataURL(qrString, { width: 300, margin: 2 });
 }
 
 function WhatsAppSkeleton() {
@@ -82,6 +91,16 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const [refreshingQr, setRefreshingQr] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
+  const applyQr = useCallback(async (qrString: string | null) => {
+    if (!qrString) { setQr(null); return; }
+    try {
+      const dataUrl = await generateQrDataUrl(qrString);
+      setQr(dataUrl);
+    } catch {
+      setQr(null);
+    }
+  }, []);
+
   const fetchData = useCallback(async (isInitial = false) => {
     try {
       setError(null);
@@ -94,13 +113,13 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       if (stat.status === "fulfilled") {
         setStatus(stat.value);
         if (stat.value.qr) {
-          setQr(stat.value.qr);
+          await applyQr(stat.value.qr);
         } else {
           const normalized = normalizeStatus(stat.value.status);
           if (normalized === "qr_ready" || normalized === "disconnected") {
             try {
               const qrRes = await getQrCode();
-              setQr(qrRes?.qr ?? null);
+              await applyQr(qrRes?.qr ?? null);
             } catch {
               setQr(null);
             }
@@ -129,7 +148,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     } finally {
       setLoading(false);
     }
-  }, [instanceId]);
+  }, [instanceId, applyQr]);
 
   useEffect(() => {
     if (error?.is401) return;
@@ -151,14 +170,14 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
         const stat = await getStatus();
         setStatus(stat);
         if (stat.qr) {
-          setQr(stat.qr);
+          await applyQr(stat.qr);
           toast.success("QR code ready. Scan to connect.");
           setRefreshingQr(false);
           return;
         }
         const r = await getQrCode();
         if (r?.qr) {
-          setQr(r.qr);
+          await applyQr(r.qr);
           toast.success("QR code ready. Scan to connect.");
           setRefreshingQr(false);
           return;
@@ -175,7 +194,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     };
 
     await tryGetQr();
-  }, [status?.status]);
+  }, [status?.status, applyQr]);
 
   const handleConnect = useCallback(async () => {
     if (normalizeStatus(status?.status ?? "") === "connected") return;
@@ -262,7 +281,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           {qr ? (
             <div className="flex justify-center">
               <img
-                src={`data:image/png;base64,${qr}`}
+                src={qr}
                 alt="WhatsApp QR Code"
                 className="w-72 h-72 object-contain border rounded-lg shadow-sm"
               />
