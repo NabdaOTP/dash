@@ -7,7 +7,7 @@ export default async function Page({
 }: {
   params: { id: string; locale: string };
 }) {
-  const { id, locale } = params;
+  const { id, locale } = await params;
 
   return <InstanceMessagesPage instanceId={id} locale={locale} />;
 }

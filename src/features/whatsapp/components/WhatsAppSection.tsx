@@ -182,7 +182,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           setRefreshingQr(false);
           return;
         }
-      } catch {}
+      } catch { }
 
       if (attempts < maxAttempts) {
         await new Promise((res) => setTimeout(res, 5000));
@@ -235,15 +235,8 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       toast.success("Message sent");
       setSendText("");
     } catch (err: unknown) {
-      const errStatus = (err as { status?: number })?.status;
       const msg = (err as { message?: string })?.message ?? "Failed to send message";
       toast.error(msg);
-      if (errStatus === 401) {
-        setError({
-          message: "Session expired. Please go back to instances and reopen this instance.",
-          is401: true,
-        });
-      }
     } finally {
       setSending(false);
     }

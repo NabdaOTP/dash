@@ -4,6 +4,7 @@ export interface Message {
   message: string;
   status: "queued" | "sent" | "invalid";
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface MessagesResponse {

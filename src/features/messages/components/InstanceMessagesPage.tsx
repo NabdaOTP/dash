@@ -20,29 +20,30 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getMessages } from "@/features/messages/services/messages-service";
+import { getInstance } from "@/features/instances/services/instances-service";
 import type { Message, MessagesResponse } from "@/features/messages/types";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type TabValue = "all" | "queued" | "sent" | "invalid";
 
-
-function formatDateTime(dateStr: string): string {
+function formatDateTime(dateStr?: string): string {
+  if (!dateStr) return "—";
   try {
     const d = new Date(dateStr);
     const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const min = String(d.getMinutes()).padStart(2, "0");
-    const ss = String(d.getSeconds()).padStart(2, "0");
+    const mm   = String(d.getMonth() + 1).padStart(2, "0");
+    const dd   = String(d.getDate()).padStart(2, "0");
+    const hh   = String(d.getHours()).padStart(2, "0");
+    const min  = String(d.getMinutes()).padStart(2, "0");
+    const ss   = String(d.getSeconds()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
   } catch { return "—"; }
 }
 
 const statusColors: Record<string, string> = {
-  sent: "bg-success/10 text-success border-success/20",
-  queued: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  sent:    "bg-success/10 text-success border-success/20",
+  queued:  "bg-blue-500/10 text-blue-600 border-blue-500/20",
   invalid: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
@@ -53,13 +54,19 @@ export default function InstanceMessagesPage({
   instanceId: string;
   locale: string;
 }) {
-  const id = instanceId;
-  const [tab, setTab] = useState<TabValue>("all");
+  const [instanceName, setInstanceName] = useState<string>("");
+  const [tab, setTab]           = useState<TabValue>("all");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [limit] = useState(20);
+  const [loading, setLoading]   = useState(true);
+  const [page, setPage]         = useState(1);
+  const [total, setTotal]       = useState(0);
+  const [limit]                 = useState(20);
+
+  useEffect(() => {
+    getInstance(instanceId)
+      .then((inst) => setInstanceName(inst.name))
+      .catch(() => setInstanceName(instanceId.slice(0, 8)));
+  }, [instanceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,13 +121,15 @@ export default function InstanceMessagesPage({
                 <TableHead className="whitespace-nowrap">Status</TableHead>
                 <TableHead className="whitespace-nowrap">Body</TableHead>
                 <TableHead className="whitespace-nowrap">Created at</TableHead>
+                <TableHead className="whitespace-nowrap">Sent at</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {messages.map((m, index) => (
-                <TableRow key={m.id} className={
-                  m.status === "sent" ? "bg-green-50/50 dark:bg-green-950/10" : ""
-                }>
+                <TableRow
+                  key={m.id}
+                  className={m.status === "sent" ? "bg-green-50/50 dark:bg-green-950/10" : ""}
+                >
                   <TableCell className="text-xs text-muted-foreground">
                     {(page - 1) * limit + index + 1}
                   </TableCell>
@@ -136,6 +145,10 @@ export default function InstanceMessagesPage({
                   <TableCell className="text-xs max-w-xs truncate">{m.message}</TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDateTime(m.createdAt)}
+                  </TableCell>
+                  {/* ✅ Sent at = updatedAt — بيتحدث لما الـ status يبقى sent */}
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {m.status === "sent" ? formatDateTime(m.updatedAt) : "—"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -170,7 +183,6 @@ export default function InstanceMessagesPage({
     <div className="min-h-screen bg-background">
       <div className="p-6 max-w-7xl mx-auto space-y-6">
 
-        {/* ✅ Breadcrumb */}
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -182,8 +194,8 @@ export default function InstanceMessagesPage({
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/${locale}/instances/${id}`}>
-                #{id?.slice(0, 8) ?? ""}
+              <BreadcrumbLink href={`/${locale}/instances/${instanceId}`}>
+                {instanceName || instanceId.slice(0, 8)}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -194,24 +206,26 @@ export default function InstanceMessagesPage({
         </Breadcrumb>
 
         <div>
-          <h1 className="text-2xl font-bold mb-1 text-foreground">
-            Messages
-          </h1>
+          <h1 className="text-2xl font-bold mb-1 text-foreground">Messages</h1>
           <p className="text-sm text-muted-foreground">
-            Instance #{id?.slice(0, 8) ?? ""} — <span className="text-sm font-medium text-white bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] px-1.5 py-0.5  rounded-sm">{total}</span> <span className="text-lg font-semibold">Messages</span>
+            {instanceName || instanceId.slice(0, 8)} —{" "}
+            <span className="text-sm font-medium text-white bg-linear-to-r from-[#A78BFA] to-[#7C3AED] px-1.5 py-0.5 rounded-sm">
+              {total}
+            </span>{" "}
+            <span className="text-lg font-semibold">Messages</span>
           </p>
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
           <TabsList className="mb-4">
-            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA]" value="all">All</TabsTrigger>
-            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA]" value="queued">Queued</TabsTrigger>
-            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA]" value="sent">Sent</TabsTrigger>
-            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA]" value="invalid">Invalid</TabsTrigger>
+            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED]" value="all">All</TabsTrigger>
+            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED]" value="queued">Queued</TabsTrigger>
+            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED]" value="sent">Sent</TabsTrigger>
+            <TabsTrigger className="data-[state=active]:bg-linear-to-r from-[#A78BFA] to-[#7C3AED]" value="invalid">Invalid</TabsTrigger>
           </TabsList>
-          <TabsContent value="all" className="mt-0">{renderTable()}</TabsContent>
-          <TabsContent value="queued" className="mt-0">{renderTable()}</TabsContent>
-          <TabsContent value="sent" className="mt-0">{renderTable()}</TabsContent>
+          <TabsContent value="all"     className="mt-0">{renderTable()}</TabsContent>
+          <TabsContent value="queued"  className="mt-0">{renderTable()}</TabsContent>
+          <TabsContent value="sent"    className="mt-0">{renderTable()}</TabsContent>
           <TabsContent value="invalid" className="mt-0">{renderTable()}</TabsContent>
         </Tabs>
       </div>
