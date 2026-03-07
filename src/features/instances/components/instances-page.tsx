@@ -308,10 +308,8 @@ export function InstancesPage() {
               <TableBody>
                 {sortedInstances.map((inst) => {
                   const isPending = inst.status === "PAYMENT_PENDING";
-                  //  is trail condition to view or hide the pay button
                   const isTrial = inst.status === "TRIAL" || inst.isTrialInstance === true;
                   const isActive = inst.status === "ACTIVE" || inst.status === "active";
-                  //  Pay: show always for free trail and hide it when the user pay
                   const showPay = isTrial || isPending;
                   return (
                     <Fragment key={inst.id}>
@@ -328,7 +326,6 @@ export function InstancesPage() {
                           </div>
                         </TableCell>
 
-                        {/* ✅ date: yyyy-MM-dd */}
                         <TableCell>{formatDate(inst.createdAt)}</TableCell>
                         <TableCell>
                           {/* {isTrialInstance(inst) ? formatTrialEnd(inst.expiresAt ?? inst.trialEnd) : "—"} */}
@@ -344,7 +341,6 @@ export function InstancesPage() {
                         <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 flex-wrap">
 
-                            {/* ✅ instead of eye icon */}
                             {!isPending && (
                               <Link href={`/${locale}/instances/${inst.id}`}>
                                 <Button
@@ -359,7 +355,7 @@ export function InstancesPage() {
                               </Link>
                             )}
 
-                            {/* ✅ Pay — trail and payment pending*/}
+                            {/* Pay — trail and payment pending*/}
                             {showPay && (
                               <Button
                                 variant="default" size="sm"

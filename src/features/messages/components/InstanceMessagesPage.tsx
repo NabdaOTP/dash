@@ -146,7 +146,6 @@ export default function InstanceMessagesPage({
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDateTime(m.createdAt)}
                   </TableCell>
-                  {/* ✅ Sent at = updatedAt — بيتحدث لما الـ status يبقى sent */}
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {m.status === "sent" ? formatDateTime(m.updatedAt) : "—"}
                   </TableCell>

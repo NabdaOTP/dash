@@ -45,8 +45,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 // TODO: uncomment when backend configures success_url redirect:
-// import { useSearchParams } from "next/navigation";
-// import { connect } from "@/features/whatsapp/services/whatsapp-service";
+import { useSearchParams } from "next/navigation";
 
 export function InstanceDetailView({ id, locale }: { id: string; locale: string }) {
   const { selectInstance } = useAuth();
@@ -93,13 +92,14 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
   }, [loadInstance]);
 
   // TODO: uncomment when backend configures success_url with ?payment=success:
-  // const searchParams = useSearchParams();
-  // const paymentSuccess = searchParams.get("payment") === "success";
-  // useEffect(() => {
-  //   if (!paymentSuccess || !instance || loading) return;
-  //   connect().catch(() => {});
-  // }, [paymentSuccess, instance, loading]);
+  const searchParams = useSearchParams();
+  const paymentSuccess = searchParams.get("payment") === "success";
+  useEffect(() => {
+    if (!paymentSuccess || !instance || loading) return;
+    connect().catch(() => {});
+  }, [paymentSuccess, instance, loading]);
 
+  
   const handleCopy = async (value: string, field: string) => {
     if (!value) return;
     try {
