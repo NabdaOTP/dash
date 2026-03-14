@@ -63,5 +63,5 @@ export async function getAutoRenew(): Promise<boolean> {
 }
 
 export async function getInvoices(): Promise<Invoice[]> {
-  return api.get<Invoice[]>("/api/v1/billing/invoices");
+  return api.get<Invoice[]>("/api/v1/billing/invoices", instanceScope);
 }

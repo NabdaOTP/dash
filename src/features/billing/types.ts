@@ -7,11 +7,24 @@ export interface Plan {
 
 export interface Invoice {
   id: string;
-  amount: number;
+  totalAmountUsd?: string;
+  amount?: number;
   currency: string;
-  status: string;
+  status?: string;       
+  paidAt?: string;       
   createdAt: string;
+  invoicePdf?: string;
   pdfUrl?: string;
+  hostedInvoiceUrl?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  metadata?: {
+    planId?: string;
+    planCode?: string;
+    interval?: string;   
+    instanceId?: string;
+    userId?: string;
+  };
 }
 
 export interface CurrentSubscription {
@@ -21,4 +34,3 @@ export interface CurrentSubscription {
   endDate?: string;
   autoRenew?: boolean;
 }
-

@@ -26,7 +26,7 @@ export interface RequestOptions extends RequestInit {
   tokenScope?: TokenScope;
 }
 
-async function request<T>(endpoint: string,options: RequestOptions = {},): Promise<T> {
+async function request<T>(endpoint: string, options: RequestOptions = {},): Promise<T> {
   const { tokenScope = "user", ...fetchInit } = options;
   const token = getToken(tokenScope);
 
@@ -35,7 +35,10 @@ async function request<T>(endpoint: string,options: RequestOptions = {},): Promi
     ...((fetchInit.headers as Record<string, string>) || {}),
   };
 
-  if (token) {
+  // if (token) {
+  //   headers["Authorization"] = `Bearer ${token}`;
+  // }
+  if (token && !headers["Authorization"]) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 

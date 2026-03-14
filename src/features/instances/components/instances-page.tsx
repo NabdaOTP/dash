@@ -370,7 +370,7 @@ export function InstancesPage() {
                               </Button>
                             )}
 
-                            {/* ✅ More menu */}
+                            {/* More menu */}
                             <DropdownMenu
                               open={openMenuId === inst.id}
                               onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}

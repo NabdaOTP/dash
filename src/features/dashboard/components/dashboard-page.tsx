@@ -39,20 +39,18 @@ export function DashboardPage() {
 
   const activeCount = stats?.activeInstances ?? 0;
   const stoppedCount = stats?.stoppedInstances ?? 0;
-
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">{t("welcome")}</h1>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#4caf50] p-6 flex items-center justify-between">
             <div>
               <p className="text-4xl font-bold text-white">{activeCount}</p>
               <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
-                ACTIVE
+                ACTIVE Instance
               </p>
             </div>
             <Layers className="h-14 w-14 text-white/30" />
@@ -65,13 +63,12 @@ export function DashboardPage() {
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
-
         <div className="rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#f44336] p-6 flex items-center justify-between">
             <div>
               <p className="text-4xl font-bold text-white">{stoppedCount}</p>
               <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
-                STOPPED
+                STOPPED instance
               </p>
             </div>
             <Layers className="h-14 w-14 text-white/30" />
@@ -85,7 +82,6 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href="/instances"
@@ -101,9 +97,10 @@ export function DashboardPage() {
             </div>
           </div>
         </Link>
-
         <Link
-          href="/api-docs"
+          href="https://api.nabdaotp.com/docs"
+          target="_blank"
+          rel="noopener noreferrer"
           className="group bg-card rounded-xl border border-border p-6 text-start hover:shadow-elevated hover:border-primary/30 transition-all duration-300"
         >
           <div className="flex items-center gap-4">

@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { RefreshCw, Send, Loader2 } from "lucide-react";
+import { RefreshCw, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { getQrCode, getStatus, connect, disconnect, restart } from "../services/whatsapp-service";
 import { sendMessage } from "@/features/messages/services/messages-service";
 import { getInstance } from "@/features/instances/services/instances-service";
+import { useAuth } from "@/features/auth/context/auth-context";
 import type { WhatsAppStatus } from "../types";
 import { toast } from "sonner";
 import QRCode from "qrcode";
@@ -80,6 +81,7 @@ function WhatsAppSkeleton() {
 }
 
 export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionProps) {
+  const { selectInstance } = useAuth();
   const [status, setStatus] = useState<WhatsAppStatus | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -101,6 +103,14 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     }
   }, []);
 
+  const refreshInstanceToken = useCallback(async () => {
+    try {
+      await selectInstance({ instanceId });
+    } catch {
+      // silent
+    }
+  }, [instanceId, selectInstance]);
+
   const fetchData = useCallback(async (isInitial = false) => {
     try {
       setError(null);
@@ -109,6 +119,14 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
         getStatus(),
         getInstance(instanceId),
       ]);
+
+      if (stat.status === "rejected") {
+        const errStatus = (stat.reason as { status?: number })?.status;
+        if (errStatus === 401) {
+          await refreshInstanceToken();
+          return;
+        }
+      }
 
       if (stat.status === "fulfilled") {
         setStatus(stat.value);
@@ -138,24 +156,23 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       if (errStatus === 403) {
         setError({ message: "Instance not active or missing scoped token. Complete payment first." });
       } else if (errStatus === 401) {
-        setError({
-          message: "Session expired. Please go back to instances and reopen this instance.",
-          is401: true,
-        });
+        await refreshInstanceToken();
       } else if (!isInitial) {
         setError({ message: "Failed to load WhatsApp status" });
       }
     } finally {
       setLoading(false);
     }
-  }, [instanceId, applyQr]);
+  }, [instanceId, applyQr, refreshInstanceToken]);
 
+  
   useEffect(() => {
     if (error?.is401) return;
     fetchData(true);
-    const interval = setInterval(() => fetchData(false), 30000);
+    const isConnecting = normalizeStatus(status?.status ?? "") === "connecting";
+    const interval = setInterval(() => fetchData(false), isConnecting ? 5000 : 30000);
     return () => clearInterval(interval);
-  }, [instanceId, fetchData, error?.is401]);
+  }, [instanceId, fetchData, error?.is401, status?.status]);
 
   const handleRefreshQr = useCallback(async () => {
     if (normalizeStatus(status?.status ?? "") === "connected") return;
@@ -182,7 +199,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           setRefreshingQr(false);
           return;
         }
-      } catch { }
+      } catch {}
 
       if (attempts < maxAttempts) {
         await new Promise((res) => setTimeout(res, 5000));
@@ -235,12 +252,30 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       toast.success("Message sent");
       setSendText("");
     } catch (err: unknown) {
+      const errStatus = (err as { status?: number })?.status;
       const msg = (err as { message?: string })?.message ?? "Failed to send message";
+
+      if (errStatus === 401) {
+        try {
+          await refreshInstanceToken();
+          const inst = await getInstance(instanceId);
+          if (inst.apiKey) {
+            setApiKey(inst.apiKey);
+            await sendMessage({ phone, message }, inst.apiKey);
+            toast.success("Message sent");
+            setSendText("");
+            return;
+          }
+        } catch {
+          // silent
+        }
+      }
+
       toast.error(msg);
     } finally {
       setSending(false);
     }
-  }, [sendPhone, sendText, apiKey]);
+  }, [sendPhone, sendText, apiKey, instanceId, refreshInstanceToken]);
 
   if (loading) return <WhatsAppSkeleton />;
 
@@ -271,7 +306,17 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           <h3 className="text-xl font-semibold">Connect WhatsApp</h3>
         </CardHeader>
         <CardContent className="space-y-6">
-          {qr ? (
+          {isConnected ? (
+            <div className="flex flex-col items-center justify-center py-10 bg-green-50/50 dark:bg-green-950/10 rounded-lg gap-3">
+              <CheckCircle2 className="h-14 w-14 text-green-500" />
+              <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                WhatsApp Connected
+              </p>
+              {displayPhone && (
+                <p className="text-sm text-muted-foreground font-mono">{displayPhone}</p>
+              )}
+            </div>
+          ) : qr ? (
             <div className="flex justify-center">
               <img
                 src={qr}
@@ -283,51 +328,53 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
             <div className="text-center py-10 bg-muted/40 rounded-lg">
               <p className="text-lg font-medium">No QR code available</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {isConnected
-                  ? "Your WhatsApp is already connected"
-                  : "Click Connect to generate a QR code"}
+                Click Connect to generate a QR code
               </p>
             </div>
           )}
 
-          <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
-            <li>Open WhatsApp on your phone</li>
-            <li>Go to Settings → Linked Devices</li>
-            <li>Tap "Link a Device"</li>
-            <li>Scan the QR code above</li>
-          </ol>
+          {!isConnected && (
+            <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
+              <li>Open WhatsApp on your phone</li>
+              <li>Go to Settings → Linked Devices</li>
+              <li>Tap "Link a Device"</li>
+              <li>Scan the QR code above</li>
+            </ol>
+          )}
 
           <div className="flex flex-wrap gap-3">
             <Button onClick={handleConnect} disabled={isConnected || connecting}>
               {connecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Connect
             </Button>
-            <Button variant="outline" onClick={handleRefreshQr} disabled={isConnected || refreshingQr}>
-              {refreshingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Refresh QR
-            </Button>
+            {!isConnected && (
+              <Button variant="outline" onClick={handleRefreshQr} disabled={refreshingQr}>
+                {refreshingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Refresh QR
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <h3 className="text-xl font-semibold">Connection Status</h3>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-semibold">Connection Status</h3>
             <Badge
               variant={isConnected ? "default" : "secondary"}
-              className="text-base px-4 py-1.5"
+              className="text-sm px-3 py-1"
             >
               {status?.status?.toUpperCase() || "UNKNOWN"}
             </Badge>
-            {displayPhone && (
-              <p className="mt-3 text-sm">
-                <strong>Phone:</strong> {displayPhone}
-              </p>
-            )}
           </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {displayPhone && (
+            <p className="text-sm">
+              <strong>Phone:</strong> {displayPhone}
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-3">
             <Button
@@ -369,9 +416,12 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
             <div className="space-y-2">
               <Label htmlFor="send-phone">Phone number</Label>
               <Input
-                id="send-phone" placeholder="+201012345678"
-                value={sendPhone} onChange={(e) => setSendPhone(e.target.value)}
-                disabled={sending} className="font-mono"
+                id="send-phone"
+                placeholder="+1234567890"
+                value={sendPhone}
+                onChange={(e) => setSendPhone(e.target.value)}
+                disabled={sending}
+                className="font-mono"
               />
             </div>
             <div className="space-y-2">

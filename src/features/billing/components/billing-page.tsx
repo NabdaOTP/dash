@@ -8,6 +8,7 @@ import {
   FileText,
   Loader2,
   Download,
+  ExternalLink,
   CheckCircle2,
   Server,
 } from "lucide-react";
@@ -24,6 +25,25 @@ import {
 import { Link } from "@/i18n/navigation";
 import * as billingService from "../services/billing-service";
 import type { Plan, Invoice } from "../types";
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric",
+    });
+  } catch { return "—"; }
+}
+
+function getInvoiceAmount(inv: Invoice): string {
+  if (inv.totalAmountUsd) return `$${parseFloat(inv.totalAmountUsd).toFixed(2)}`;
+  if (inv.amount != null) return `${inv.currency?.toUpperCase() ?? ""} ${inv.amount}`;
+  return "—";
+}
+
+function getInvoicePdf(inv: Invoice): string | undefined {
+  return inv.invoicePdf || inv.pdfUrl;
+}
 
 export function BillingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -45,9 +65,7 @@ export function BillingPage() {
         ]);
         if (plansData.status === "fulfilled") setPlans(plansData.value);
         if (invoicesData.status === "fulfilled") {
-          setInvoices(
-            Array.isArray(invoicesData.value) ? invoicesData.value : []
-          );
+          setInvoices(Array.isArray(invoicesData.value) ? invoicesData.value : []);
         }
         if (subscriptionData.status === "fulfilled") setCurrentSubscription(subscriptionData.value);
       } catch {
@@ -77,7 +95,7 @@ export function BillingPage() {
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      {/* Payment success banner when redirected from Stripe */}
+      {/* Payment success banner */}
       {paymentSuccess && (
         <div className="bg-success/10 border border-success/20 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -95,13 +113,6 @@ export function BillingPage() {
                       ? `$${successPlan.price}/month`
                       : t("plans.free")}
                   </p>
-                  {successPlan.features?.length > 0 && (
-                    <ul className="mt-1 list-disc list-inside text-muted-foreground">
-                      {successPlan.features.slice(0, 3).map((f, i) => (
-                        <li key={i}>{f}</li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
               )}
             </div>
@@ -115,7 +126,7 @@ export function BillingPage() {
         </div>
       )}
 
-      {/* Current subscriptions/plans with features */}
+      {/* Current Plan */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-[#A78BFA]" />
@@ -128,9 +139,7 @@ export function BillingPage() {
                 <h3 className="font-semibold text-foreground text-lg">{displayPlan.name}</h3>
                 <p className="text-2xl font-bold text-[#7C3AED] mt-1">
                   {displayPlan.price != null
-                    ? displayPlan.price > 0
-                      ? `$${displayPlan.price}`
-                      : t("plans.free")
+                    ? displayPlan.price > 0 ? `$${displayPlan.price}` : t("plans.free")
                     : "—"}
                 </p>
               </div>
@@ -178,8 +187,8 @@ export function BillingPage() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="font-semibold">{t("invoices.amount")}</TableHead>
-                  <TableHead className="font-semibold">{t("invoices.status")}</TableHead>
                   <TableHead className="font-semibold">{t("invoices.date")}</TableHead>
+                  <TableHead className="font-semibold">Period</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -187,28 +196,43 @@ export function BillingPage() {
                 {invoices.map((inv) => (
                   <TableRow key={inv.id}>
                     <TableCell className="font-medium">
-                      {inv.currency} {inv.amount}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {inv.status}
-                      </Badge>
+                      {getInvoiceAmount(inv)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {inv.createdAt}
+                      {formatDate(inv.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {inv.periodStart && inv.periodEnd
+                        ? `${formatDate(inv.periodStart)} → ${formatDate(inv.periodEnd)}`
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-end">
-                      {inv.pdfUrl && (
-                        <a
-                          href={inv.pdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs text-[#7C3AED] hover:underline"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          {t("invoices.download")}
-                        </a>
-                      )}
+                      <div className="flex items-center justify-end gap-3">
+                        {/* ✅ Download PDF */}
+                        {getInvoicePdf(inv) && (
+                          <a
+                            href={getInvoicePdf(inv)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-[#7C3AED] hover:underline"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            {t("invoices.download")}
+                          </a>
+                        )}
+                        {/* ✅ View on Stripe */}
+                        {inv.hostedInvoiceUrl && (
+                          <a
+                            href={inv.hostedInvoiceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            View
+                          </a>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -58,23 +58,6 @@ const faqCategories: FaqCategory[] = [
     ],
   },
   {
-    nameKey: "categories.pricing",
-    items: [
-      {
-        q: "What plans are available?",
-        a: "We offer three plans: Free (100 OTPs/day), Pro (5,000 OTPs/day at $29/month), and Enterprise (unlimited OTPs with custom pricing). All plans include API access and dashboard analytics.",
-      },
-      {
-        q: "Is there a free trial?",
-        a: "Yes! The Free plan is available at no cost and includes 100 OTP messages per day. This is perfect for testing and development. No credit card required to sign up.",
-      },
-      {
-        q: "Can I change my plan at any time?",
-        a: "Yes, you can upgrade or downgrade your plan at any time from your account settings. Changes take effect immediately, and billing is prorated.",
-      },
-    ],
-  },
-  {
     nameKey: "categories.security",
     items: [
       {
