@@ -35,20 +35,17 @@ const statusStyles: Record<string, string> = {
   inactive: "bg-muted text-muted-foreground border-border",
   error: "bg-destructive/10 text-destructive border-destructive/20",
   PAYMENT_PENDING: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+  SUSPENDED: "bg-red-500/10 text-red-600 border-red-500/20", 
 };
-
-function isTrialInstance(inst: Instance) {
-  return inst.isTrialInstance === true || inst.status === "TRIAL" || inst.expiresAt != null;
-}
 
 function getRowBg(status: string) {
   if (status === "ACTIVE" || status === "active" || status === "TRIAL")
     return "bg-green-50 dark:bg-green-950/20";
-  if (status === "PAYMENT_PENDING") return "bg-red-50 dark:bg-red-950/20";
+  if (status === "PAYMENT_PENDING" || status === "SUSPENDED")
+    return "bg-red-50 dark:bg-red-950/20"; 
   return "";
 }
 
-// ✅ date form
 function formatDate(dateStr: string): string {
   try {
     const d = new Date(dateStr);
@@ -59,9 +56,10 @@ function formatDate(dateStr: string): string {
   } catch { return "—"; }
 }
 
-function formatTrialEnd(trialEnd: string | null | undefined): string {
-  if (!trialEnd) return "—";
-  return formatDate(trialEnd);
+
+function getDisplayExpiry(inst: Instance): string {
+  if (!inst.expiresAt) return "—";
+  return formatDate(inst.expiresAt);
 }
 
 export function InstancesPage() {
@@ -172,8 +170,8 @@ export function InstancesPage() {
       await instancesService.deleteInstance(id);
       await fetchInstances();
       toast.success("Instance deleted successfully");
-    } catch (err: any) {
-      toast.error(err?.status === 403
+    } catch (err: unknown) {
+      toast.error((err as { status?: number })?.status === 403
         ? "Cannot delete: Instance is in PAYMENT_PENDING or permission denied"
         : "Failed to delete instance");
     } finally {
@@ -211,7 +209,7 @@ export function InstancesPage() {
       const planId = plans[0]?.id;
       if (!planId) { toast.error("No billing plan available"); return; }
       const result = await billingService.subscribe(planId);
-      const checkoutUrl = (result as any)?.url ?? (result as any)?.checkoutUrl;
+      const checkoutUrl = (result as Record<string, string>)?.url ?? (result as Record<string, string>)?.checkoutUrl;
       if (!checkoutUrl) { toast.error("No checkout URL returned"); return; }
       window.location.href = checkoutUrl;
     } catch (err: unknown) {
@@ -221,20 +219,6 @@ export function InstancesPage() {
     }
   };
 
- // function made by front manually not from backend response 
-  function getDisplayExpiry(inst: Instance): string {
-  if (!inst.expiresAt) return "—";
-  const expires = new Date(inst.expiresAt);
-  const created = new Date(inst.createdAt);
-  const sameDay = expires.toDateString() === created.toDateString();
-  if (sameDay && !inst.isTrialInstance) {
-    const calculated = new Date(created);
-    calculated.setMonth(calculated.getMonth() + 1);
-    return formatDate(calculated.toISOString());
-  }
-  
-  return formatDate(inst.expiresAt);
-}
   const filtered = instances.filter((inst) =>
     inst.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -308,14 +292,16 @@ export function InstancesPage() {
               <TableBody>
                 {sortedInstances.map((inst) => {
                   const isPending = inst.status === "PAYMENT_PENDING";
+                  const isSuspended = inst.status === "SUSPENDED"; 
                   const isTrial = inst.status === "TRIAL" || inst.isTrialInstance === true;
-                  const isActive = inst.status === "ACTIVE" || inst.status === "active";
-                  const showPay = isTrial || isPending;
+                  const isBlocked = isPending || isSuspended; 
+                  const showPay = isPending || isSuspended || isTrial; 
+
                   return (
                     <Fragment key={inst.id}>
                       <TableRow
-                        className={`transition-colors ${getRowBg(inst.status)} ${isPending ? "cursor-not-allowed opacity-90" : "cursor-pointer"}`}
-                        onClick={() => !isPending && router.push(`/${locale}/instances/${inst.id}`)}
+                        className={`transition-colors ${getRowBg(inst.status)} ${isBlocked ? "cursor-not-allowed opacity-90" : "cursor-pointer"}`}
+                        onClick={() => !isBlocked && router.push(`/${locale}/instances/${inst.id}`)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -327,25 +313,23 @@ export function InstancesPage() {
                         </TableCell>
 
                         <TableCell>{formatDate(inst.createdAt)}</TableCell>
-                        <TableCell>
-                          {/* {isTrialInstance(inst) ? formatTrialEnd(inst.expiresAt ?? inst.trialEnd) : "—"} */}
-                          {getDisplayExpiry(inst)}
-                        </TableCell>
+                        <TableCell>{getDisplayExpiry(inst)}</TableCell>
 
                         <TableCell>
                           <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] ?? "bg-muted text-muted-foreground"}`}>
-                            {inst.status === "PAYMENT_PENDING" ? "Payment Pending" : inst.status}
+                            {inst.status === "PAYMENT_PENDING" ? "Payment Pending"
+                              : inst.status === "SUSPENDED" ? "Suspended"
+                                : inst.status}
                           </Badge>
                         </TableCell>
 
                         <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 flex-wrap">
 
-                            {!isPending && (
+                            {!isBlocked && (
                               <Link href={`/${locale}/instances/${inst.id}`}>
                                 <Button
-                                  variant="default"
-                                  size="sm"
+                                  variant="default" size="sm"
                                   className="bg-blue-500 hover:bg-blue-600 text-white gap-1.5"
                                   onClick={(e) => e.stopPropagation()}
                                 >
@@ -355,7 +339,7 @@ export function InstancesPage() {
                               </Link>
                             )}
 
-                            {/* Pay — trail and payment pending*/}
+                            {/* Pay */}
                             {showPay && (
                               <Button
                                 variant="default" size="sm"
@@ -370,7 +354,6 @@ export function InstancesPage() {
                               </Button>
                             )}
 
-                            {/* More menu */}
                             <DropdownMenu
                               open={openMenuId === inst.id}
                               onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}
@@ -384,16 +367,13 @@ export function InstancesPage() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
 
-                                {/* Edit — show for active and trail */}
-                                {!isPending && (
+                                {!isBlocked && (
                                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}>
                                     <Pencil className="h-4 w-4 me-2" />
                                     Edit Name
                                   </DropdownMenuItem>
                                 )}
-
-                                {/* Extend Trial — just for trail*/}
-                                {isTrial && (
+                                {isTrial && !isSuspended && (
                                   <DropdownMenuItem
                                     onClick={(e) => { e.stopPropagation(); setShowExtendTrialConfirm(inst.id); }}
                                     disabled={!!extendTrialId}
@@ -404,9 +384,7 @@ export function InstancesPage() {
                                     Extend Trial
                                   </DropdownMenuItem>
                                 )}
-
-                                {/* Trash — just for payment pending*/}
-                                {isPending && instances.length > 1 && (
+                                {isBlocked && instances.length > 1 && (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
                                     onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(inst.id); }}
@@ -424,10 +402,13 @@ export function InstancesPage() {
                         </TableCell>
                       </TableRow>
 
-                      {isPending && (
+                      {/* Warning row */}
+                      {isBlocked && (
                         <TableRow className="bg-red-50 dark:bg-red-950/20">
                           <TableCell colSpan={5} className="py-2 px-6 text-sm text-red-600 dark:text-red-400 border-t border-red-100 dark:border-red-900">
-                            Your instance has been Stopped due to non-payment. You can activate this instance by extending your subscription.
+                            {isSuspended
+                              ? "Your instance has been suspended. Please pay to reactivate it." // ✅
+                              : "Your instance has been Stopped due to non-payment. You can activate this instance by extending your subscription."}
                           </TableCell>
                         </TableRow>
                       )}
@@ -439,6 +420,7 @@ export function InstancesPage() {
           </div>
         </div>
       )}
+
       {/* Dialogs */}
       <Dialog open={showCreateConfirm} onOpenChange={setShowCreateConfirm}>
         <DialogContent>
@@ -457,6 +439,7 @@ export function InstancesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <Dialog open={creatingdia} onOpenChange={setCreatingdia}>
         <DialogContent className="bg-card max-w-md">
           <div className="flex flex-col items-center py-8">
