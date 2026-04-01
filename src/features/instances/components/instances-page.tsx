@@ -465,7 +465,6 @@ export function InstancesPage() {
                                   (inst.status === "TRIAL" || inst.status === "SUSPENDED") &&
                                   inst.expiresAt &&
                                   new Date(inst.expiresAt) < new Date() &&
-                                  new Date(inst.expiresAt) < new Date(Date.now() + 9 * 24 * 60 * 60 * 1000) &&
                                   (
                                     <DropdownMenuItem
                                       onClick={(e) => {
