@@ -25,6 +25,18 @@ export async function subscribe(planId: string): Promise<{ url?: string; checkou
   );
 }
 
+export async function getMonthlyPlan(): Promise<Plan> {
+  return api.get<Plan>("/api/v1/plans/default/monthly");
+}
+
+export async function getYearlyPlan(): Promise<Plan> {
+  return api.get<Plan>("/api/v1/plans/default/yearly");
+}
+
+export async function manageSubscription(): Promise<{ url: string }> {
+  return api.get<{ url: string }>("/api/v1/subscriptions/manage", instanceScope);
+}
+
 export async function startTrial(planId: string): Promise<{ url?: string }> {
   return api.post<{ url?: string }>(
     "/api/v1/subscriptions/trial/start",

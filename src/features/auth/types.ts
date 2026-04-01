@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
+  role: "OWNER" | "ADMIN" | "SUPER_ADMIN" | string;
   twoFactorEnabled: boolean;
 }
 

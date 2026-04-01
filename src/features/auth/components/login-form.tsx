@@ -14,6 +14,7 @@ import { useAuth } from "@/features/auth/context/auth-context";
 import { ApiError } from "@/lib/api-client";
 import * as authService from "@/features/auth/services/auth-service";
 import { ShieldCheck } from "lucide-react";
+import type { User } from "@/features/auth/types";
 
 type Step = "credentials" | "2fa";
 
@@ -29,6 +30,15 @@ export function LoginForm() {
   const t = useTranslations("auth");
   const { login, loginWithToken } = useAuth();
 
+  
+  function redirectByRole(user?: User | null) {
+    if (user?.role === "ADMIN") {
+      router.push("/admin");
+    } else {
+      router.push("/dashboard");
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -39,7 +49,7 @@ export function LoginForm() {
         setStep("2fa");
         return;
       }
-      router.push("/dashboard");
+      redirectByRole(response?.user);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401 || err.status === 400) {
@@ -74,6 +84,8 @@ export function LoginForm() {
       const result = await authService.verify2FA(twoFactorCode, email);
       if (result?.accessToken && result?.user) {
         loginWithToken(result.accessToken, result.user);
+        redirectByRole(result.user); 
+        return;
       }
       router.push("/dashboard");
     } catch (err) {

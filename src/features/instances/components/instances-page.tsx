@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +18,9 @@ import { useAuth } from "@/features/auth/context/auth-context";
 import * as billingService from "@/features/billing/services/billing-service";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import {
-  CalendarPlus, CreditCard, Loader2, PanelTopClose, PanelTopOpen,
-  Pencil, Plus, Rocket, Search, Server, Trash2,
+  CreditCard, ExternalLink, Loader2, PanelTopClose, PanelTopOpen,
+  Pencil, Plus, Rocket, Search, Server, Trash2, ChevronDown,
+  CalendarDays, CalendarRange,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
@@ -35,14 +37,14 @@ const statusStyles: Record<string, string> = {
   inactive: "bg-muted text-muted-foreground border-border",
   error: "bg-destructive/10 text-destructive border-destructive/20",
   PAYMENT_PENDING: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  SUSPENDED: "bg-red-500/10 text-red-600 border-red-500/20", 
+  SUSPENDED: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
 function getRowBg(status: string) {
   if (status === "ACTIVE" || status === "active" || status === "TRIAL")
     return "bg-green-50 dark:bg-green-950/20";
   if (status === "PAYMENT_PENDING" || status === "SUSPENDED")
-    return "bg-red-50 dark:bg-red-950/20"; 
+    return "bg-red-50 dark:bg-red-950/20";
   return "";
 }
 
@@ -55,7 +57,6 @@ function formatDate(dateStr: string): string {
     return `${yyyy}-${mm}-${dd}`;
   } catch { return "—"; }
 }
-
 
 function getDisplayExpiry(inst: Instance): string {
   if (!inst.expiresAt) return "—";
@@ -78,14 +79,16 @@ export function InstancesPage() {
     key: "createdAt", direction: "desc",
   });
   const [payingInstanceId, setPayingInstanceId] = useState<string | null>(null);
-  const [extendTrialId, setExtendTrialId] = useState<string | null>(null);
+  const [managingInstanceId, setManagingInstanceId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [showExtendTrialConfirm, setShowExtendTrialConfirm] = useState<string | null>(null);
+  const [openPayMenuId, setOpenPayMenuId] = useState<string | null>(null);
   const t = useTranslations("instances");
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const { selectInstance } = useAuth();
+
+  const [extendingId, setExtendingId] = useState<string | null>(null);
 
   const fetchInstances = useCallback(async () => {
     try {
@@ -186,29 +189,19 @@ export function InstancesPage() {
     }));
   };
 
-  const handleExtendTrial = async (instanceId: string) => {
-    setShowExtendTrialConfirm(null);
-    setExtendTrialId(instanceId);
-    try {
-      await selectInstance({ instanceId });
-      await billingService.extendTrialForInstance(instanceId);
-      await fetchInstances();
-      toast.success("Trial extended successfully");
-    } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to extend trial");
-    } finally {
-      setExtendTrialId(null);
-    }
-  };
-
-  const handleActivatePay = async (instanceId: string) => {
+  //  Pay Plans
+  const handleActivatePay = async (instanceId: string, interval: "monthly" | "yearly") => {
     setPayingInstanceId(instanceId);
+    setOpenPayMenuId(null);
     try {
       await selectInstance({ instanceId });
-      const plans = await billingService.getPlans();
-      const planId = plans[0]?.id;
-      if (!planId) { toast.error("No billing plan available"); return; }
-      const result = await billingService.subscribe(planId);
+      const plan = interval === "yearly"
+        ? await billingService.getYearlyPlan()
+        : await billingService.getMonthlyPlan();
+
+      if (!plan?.id) { toast.error("No billing plan available"); return; }
+
+      const result = await billingService.subscribe(plan.id);
       const checkoutUrl = (result as Record<string, string>)?.url ?? (result as Record<string, string>)?.checkoutUrl;
       if (!checkoutUrl) { toast.error("No checkout URL returned"); return; }
       window.location.href = checkoutUrl;
@@ -216,6 +209,50 @@ export function InstancesPage() {
       toast.error((err as { message?: string })?.message ?? "Failed to start payment");
     } finally {
       setPayingInstanceId(null);
+    }
+  };
+
+  // Manage Subscription — Stripe Customer Portal
+  const handleManageSubscription = async (instanceId: string) => {
+    setManagingInstanceId(instanceId);
+    try {
+      await selectInstance({ instanceId });
+      const result = await billingService.manageSubscription();
+      if (result?.url) {
+        window.open(result.url, "_blank");
+      } else {
+        toast.error("No portal URL returned");
+      }
+    } catch (err: unknown) {
+      toast.error((err as { message?: string })?.message ?? "Failed to open subscription portal");
+    } finally {
+      setManagingInstanceId(null);
+    }
+  };
+
+  const handleExtendTrial = async (instanceId: string) => {
+    setExtendingId(instanceId);
+    setOpenMenuId(null);
+
+    try {
+      await selectInstance({ instanceId });
+      await billingService.extendTrialForInstance(instanceId);
+
+      toast.success("Trial extended successfully! 🎉");
+      await fetchInstances();
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message?.toLowerCase() ?? "";
+
+      if (message.includes("already") ||
+        message.includes("extended") ||
+        message.includes("used") ||
+        message.includes("cannot")) {
+        toast.error("You have already extended this trial once.");
+      } else {
+        toast.error((err as { message?: string })?.message ?? "Failed to extend trial");
+      }
+    } finally {
+      setExtendingId(null);
     }
   };
 
@@ -292,10 +329,12 @@ export function InstancesPage() {
               <TableBody>
                 {sortedInstances.map((inst) => {
                   const isPending = inst.status === "PAYMENT_PENDING";
-                  const isSuspended = inst.status === "SUSPENDED"; 
+                  const isSuspended = inst.status === "SUSPENDED";
                   const isTrial = inst.status === "TRIAL" || inst.isTrialInstance === true;
-                  const isBlocked = isPending || isSuspended; 
-                  const showPay = isPending || isSuspended || isTrial; 
+                  const isActive = inst.status === "ACTIVE" || inst.status === "active";
+                  const isBlocked = isPending || isSuspended;
+                  const showPay = isPending || isSuspended || isTrial;
+                  const showManage = isActive && !inst.isTrialInstance;
 
                   return (
                     <Fragment key={inst.id}>
@@ -339,21 +378,56 @@ export function InstancesPage() {
                               </Link>
                             )}
 
-                            {/* Pay */}
+                            {/*  Pay — dropdown */}
                             {showPay && (
-                              <Button
-                                variant="default" size="sm"
-                                className="bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white gap-2"
-                                onClick={(e) => { e.stopPropagation(); handleActivatePay(inst.id); }}
-                                disabled={!!payingInstanceId}
+                              <DropdownMenu
+                                open={openPayMenuId === inst.id}
+                                onOpenChange={(open) => setOpenPayMenuId(open ? inst.id : null)}
                               >
-                                {payingInstanceId === inst.id
-                                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                                  : <CreditCard className="h-4 w-4" />}
-                                {payingInstanceId === inst.id ? "Redirecting…" : "Pay"}
-                              </Button>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="default" size="sm"
+                                    className="bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white gap-1.5"
+                                    disabled={!!payingInstanceId}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {payingInstanceId === inst.id
+                                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                                      : <CreditCard className="h-4 w-4" />}
+                                    {payingInstanceId === inst.id ? "Redirecting…" : "Pay"}
+                                    {payingInstanceId !== inst.id && <ChevronDown className="h-3 w-3" />}
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                    Choose a plan
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleActivatePay(inst.id, "monthly")}
+                                    disabled={!!payingInstanceId}
+                                  >
+                                    <CalendarDays className="h-4 w-4 me-2 text-[#7C3AED]" />
+                                    <div>
+                                      <p className="font-medium">Monthly</p>
+                                      <p className="text-xs text-muted-foreground">$10 / month</p>
+                                    </div>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleActivatePay(inst.id, "yearly")}
+                                    disabled={!!payingInstanceId}
+                                  >
+                                    <CalendarRange className="h-4 w-4 me-2 text-[#7C3AED]" />
+                                    <div>
+                                      <p className="font-medium">Annual</p>
+                                      <p className="text-xs text-muted-foreground">$110 / year — 1 month free</p>
+                                    </div>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
 
+                            {/* More menu */}
                             <DropdownMenu
                               open={openMenuId === inst.id}
                               onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}
@@ -373,17 +447,43 @@ export function InstancesPage() {
                                     Edit Name
                                   </DropdownMenuItem>
                                 )}
-                                {isTrial && !isSuspended && (
+
+                                {showManage && (
                                   <DropdownMenuItem
-                                    onClick={(e) => { e.stopPropagation(); setShowExtendTrialConfirm(inst.id); }}
-                                    disabled={!!extendTrialId}
+                                    onClick={(e) => { e.stopPropagation(); handleManageSubscription(inst.id); }}
+                                    disabled={managingInstanceId === inst.id}
                                   >
-                                    {extendTrialId === inst.id
+                                    {managingInstanceId === inst.id
                                       ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                                      : <CalendarPlus className="h-4 w-4 me-2" />}
-                                    Extend Trial
+                                      : <ExternalLink className="h-4 w-4 me-2" />}
+                                    Manage Subscription
                                   </DropdownMenuItem>
                                 )}
+
+                                {/* Extend Trial - Shows only for expired free trial (once only) */}
+                                {inst.isTrialInstance === true &&
+                                  (inst.status === "TRIAL" || inst.status === "SUSPENDED") &&
+                                  inst.expiresAt &&
+                                  new Date(inst.expiresAt) < new Date() &&
+                                  new Date(inst.expiresAt) < new Date(Date.now() + 9 * 24 * 60 * 60 * 1000) &&
+                                  (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleExtendTrial(inst.id);
+                                      }}
+                                      disabled={extendingId === inst.id}
+                                      className="text-amber-600 focus:text-amber-600 font-medium"
+                                    >
+                                      {extendingId === inst.id ? (
+                                        <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                      ) : (
+                                        <CalendarDays className="h-4 w-4 me-2" />
+                                      )}
+                                      Extend Trial (5 days)
+                                    </DropdownMenuItem>
+                                  )}
+
                                 {isBlocked && instances.length > 1 && (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
@@ -402,12 +502,11 @@ export function InstancesPage() {
                         </TableCell>
                       </TableRow>
 
-                      {/* Warning row */}
                       {isBlocked && (
                         <TableRow className="bg-red-50 dark:bg-red-950/20">
                           <TableCell colSpan={5} className="py-2 px-6 text-sm text-red-600 dark:text-red-400 border-t border-red-100 dark:border-red-900">
                             {isSuspended
-                              ? "Your instance has been suspended. Please pay to reactivate it." // ✅
+                              ? "Your instance has been suspended. Please pay to reactivate it."
                               : "Your instance has been Stopped due to non-payment. You can activate this instance by extending your subscription."}
                           </TableCell>
                         </TableRow>
@@ -468,25 +567,6 @@ export function InstancesPage() {
             </Button>
             <Button onClick={handleSaveEdit} disabled={saving || !editName.trim()} className="gradient-primary text-primary-foreground">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : tCommon("actions.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!showExtendTrialConfirm} onOpenChange={() => setShowExtendTrialConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Extend Trial</DialogTitle>
-            <DialogDescription>Are you sure you want to extend the free trial for this instance?</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowExtendTrialConfirm(null)} disabled={!!extendTrialId}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground"
-              onClick={async () => { if (showExtendTrialConfirm) await handleExtendTrial(showExtendTrialConfirm); }}
-              disabled={!!extendTrialId}
-            >
-              {extendTrialId && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              Extend Trial
             </Button>
           </DialogFooter>
         </DialogContent>
