@@ -37,7 +37,8 @@ const statusStyles: Record<string, string> = {
   inactive: "bg-muted text-muted-foreground border-border",
   error: "bg-destructive/10 text-destructive border-destructive/20",
   PAYMENT_PENDING: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  SUSPENDED: "bg-red-500/10 text-red-600 border-red-500/20",
+  // SUSPENDED: "bg-red-500/10 text-red-600 border-red-500/20",
+  SUSPENDED: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
 };
 
 function getRowBg(status: string) {
@@ -58,11 +59,19 @@ function formatDate(dateStr: string): string {
   } catch { return "—"; }
 }
 
+// function getDisplayExpiry(inst: Instance): string {
+//   if (!inst.expiresAt) return "—";
+//   return formatDate(inst.expiresAt);
+// }
 function getDisplayExpiry(inst: Instance): string {
-  if (!inst.expiresAt) return "—";
+  if (inst.status === "SUSPENDED" || inst.status === "PAYMENT_PENDING") {
+    return "—";
+  }
+  if (!inst.expiresAt) {
+    return "—";
+  }
   return formatDate(inst.expiresAt);
 }
-
 export function InstancesPage() {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +104,7 @@ export function InstancesPage() {
       const data = await instancesService.getMyInstances();
       setInstances(data);
     } catch {
-      toast.error("Failed to load instances");
+      toast.error(t("loadFaild"));
     } finally {
       setLoading(false);
     }
@@ -119,7 +128,7 @@ export function InstancesPage() {
           const planId = plans[0]?.id;
           if (planId) {
             await billingService.startTrial(planId);
-            toast.success("Trial started for your first instance");
+            toast.success(t("toasts.trialStarted"));
           }
         } catch (err: unknown) {
           const message = (err as { message?: string })?.message ?? "";
@@ -137,7 +146,7 @@ export function InstancesPage() {
       await Promise.all([fetchInstances(), minDelay]);
       toast.success(t("instanceCreated"));
     } catch {
-      toast.error("Failed to create instance");
+      toast.error(t("toasts.createFailed"));
     } finally {
       setCreating(false);
       setCreatingdia(false);
@@ -157,9 +166,9 @@ export function InstancesPage() {
       await instancesService.updateInstance(editingInstance.id, { name: editName });
       setEditingInstance(null);
       await fetchInstances();
-      toast.success("Instance name updated");
+      toast.success(t("nameUpdated"));
     } catch {
-      toast.error("Failed to update instance");
+      toast.error(t("updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -172,11 +181,11 @@ export function InstancesPage() {
       await selectInstance({ instanceId: id });
       await instancesService.deleteInstance(id);
       await fetchInstances();
-      toast.success("Instance deleted successfully");
+      toast.success(t("deletedSuccess"));
     } catch (err: unknown) {
       toast.error((err as { status?: number })?.status === 403
-        ? "Cannot delete: Instance is in PAYMENT_PENDING or permission denied"
-        : "Failed to delete instance");
+        ? t("toasts.deleteForbidden")
+        : t("toasts.deleteFailed"));
     } finally {
       setDeletingId(null);
     }
@@ -199,14 +208,14 @@ export function InstancesPage() {
         ? await billingService.getYearlyPlan()
         : await billingService.getMonthlyPlan();
 
-      if (!plan?.id) { toast.error("No billing plan available"); return; }
+      if (!plan?.id) { toast.error(t("noPlan")); return; }
 
       const result = await billingService.subscribe(plan.id);
       const checkoutUrl = (result as Record<string, string>)?.url ?? (result as Record<string, string>)?.checkoutUrl;
-      if (!checkoutUrl) { toast.error("No checkout URL returned"); return; }
+      if (!checkoutUrl) { toast.error(t("noCheckout")); return; }
       window.location.href = checkoutUrl;
     } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to start payment");
+      toast.error((err as { message?: string })?.message ?? t("paymentFailed"));
     } finally {
       setPayingInstanceId(null);
     }
@@ -221,10 +230,10 @@ export function InstancesPage() {
       if (result?.url) {
         window.open(result.url, "_blank");
       } else {
-        toast.error("No portal URL returned");
+        toast.error(t("noPortal"));
       }
     } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to open subscription portal");
+      toast.error((err as { message?: string })?.message ?? t("portalFailed"));
     } finally {
       setManagingInstanceId(null);
     }
@@ -238,7 +247,7 @@ export function InstancesPage() {
       await selectInstance({ instanceId });
       await billingService.extendTrialForInstance(instanceId);
 
-      toast.success("Trial extended successfully! 🎉");
+      toast.success(t("trialExtended"));
       await fetchInstances();
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message?.toLowerCase() ?? "";
@@ -247,9 +256,9 @@ export function InstancesPage() {
         message.includes("extended") ||
         message.includes("used") ||
         message.includes("cannot")) {
-        toast.error("You have already extended this trial once.");
+        toast.error(t("trialAlreadyUsed"));
       } else {
-        toast.error((err as { message?: string })?.message ?? "Failed to extend trial");
+        toast.error((err as { message?: string })?.message ?? t("Failed to extend trial"));
       }
     } finally {
       setExtendingId(null);
@@ -356,15 +365,18 @@ export function InstancesPage() {
 
                         <TableCell>
                           <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] ?? "bg-muted text-muted-foreground"}`}>
-                            {inst.status === "PAYMENT_PENDING" ? "Payment Pending"
-                              : inst.status === "SUSPENDED" ? "Suspended"
-                                : inst.status}
+                            {inst.status === "PAYMENT_PENDING" || inst.status === "SUSPENDED"
+                              ? t("paymentPending")
+                              : inst.status === "ACTIVE" || inst.status === "active"
+                                ? t("active")
+                                : inst.status === "TRIAL"
+                                  ? t("trial")
+                                  : inst.status}
                           </Badge>
                         </TableCell>
 
                         <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 flex-wrap">
-
                             {!isBlocked && (
                               <Link href={`/${locale}/instances/${inst.id}`}>
                                 <Button
@@ -373,7 +385,7 @@ export function InstancesPage() {
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <Rocket className="h-3.5 w-3.5" />
-                                  Manage
+                                  {t("manage")}
                                 </Button>
                               </Link>
                             )}
@@ -394,41 +406,44 @@ export function InstancesPage() {
                                     {payingInstanceId === inst.id
                                       ? <Loader2 className="h-4 w-4 animate-spin" />
                                       : <CreditCard className="h-4 w-4" />}
-                                    {payingInstanceId === inst.id ? "Redirecting…" : "Pay"}
+                                    {payingInstanceId === inst.id
+                                      ? t("redirecting")
+                                      : t("pay")}
                                     {payingInstanceId !== inst.id && <ChevronDown className="h-3 w-3" />}
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                                   <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                    Choose a plan
+                                    {t("choosePlan")}
                                   </DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
+                                    className="cursor-pointer"
                                     onClick={() => handleActivatePay(inst.id, "monthly")}
                                     disabled={!!payingInstanceId}
                                   >
                                     <CalendarDays className="h-4 w-4 me-2 text-[#7C3AED]" />
                                     <div>
-                                      <p className="font-medium">Monthly</p>
-                                      <p className="text-xs text-muted-foreground">$10 / month</p>
+                                      <p className="font-medium">{t("monthly")}</p>
+                                      <p className="text-xs text-muted-foreground">{t("monthlyPrice")}</p>
                                     </div>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
+                                    className="cursor-pointer"
                                     onClick={() => handleActivatePay(inst.id, "yearly")}
                                     disabled={!!payingInstanceId}
                                   >
                                     <CalendarRange className="h-4 w-4 me-2 text-[#7C3AED]" />
                                     <div>
-                                      <p className="font-medium">Annual</p>
-                                      <p className="text-xs text-muted-foreground">$110 / year — 1 month free</p>
+                                      <p className="font-medium">{t("annual")}</p>
+                                      <p className="text-xs text-muted-foreground">{t("annualPrice")}</p>
                                     </div>
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
-
                             {/* More menu */}
-                            <DropdownMenu
+                            {((!isBlocked && true) || (isBlocked && instances.length > 1)) && (<DropdownMenu
                               open={openMenuId === inst.id}
                               onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}
                             >
@@ -442,21 +457,21 @@ export function InstancesPage() {
                               <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
 
                                 {!isBlocked && (
-                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}>
+                                  <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}>
                                     <Pencil className="h-4 w-4 me-2" />
-                                    Edit Name
+                                    {t("editName")}
                                   </DropdownMenuItem>
                                 )}
-
                                 {showManage && (
                                   <DropdownMenuItem
+                                    className="cursor-pointer"
                                     onClick={(e) => { e.stopPropagation(); handleManageSubscription(inst.id); }}
                                     disabled={managingInstanceId === inst.id}
                                   >
                                     {managingInstanceId === inst.id
                                       ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                       : <ExternalLink className="h-4 w-4 me-2" />}
-                                    Manage Subscription
+                                    {t("manageSubscription")}
                                   </DropdownMenuItem>
                                 )}
 
@@ -472,31 +487,31 @@ export function InstancesPage() {
                                         handleExtendTrial(inst.id);
                                       }}
                                       disabled={extendingId === inst.id}
-                                      className="text-amber-600 focus:text-amber-600 font-medium"
+                                      className="text-amber-600 focus:text-amber-600 font-medium cursor-pointer"
                                     >
                                       {extendingId === inst.id ? (
                                         <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                       ) : (
                                         <CalendarDays className="h-4 w-4 me-2" />
                                       )}
-                                      Extend Trial (5 days)
+                                      {t("extendTrial")}
                                     </DropdownMenuItem>
                                   )}
 
                                 {isBlocked && instances.length > 1 && (
                                   <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
+                                    className="text-destructive focus:text-destructive cursor-pointer"
                                     onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(inst.id); }}
                                     disabled={deletingId === inst.id}
                                   >
                                     {deletingId === inst.id
                                       ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                       : <Trash2 className="h-4 w-4 me-2" />}
-                                    Delete
+                                    {t("delete")}
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
-                            </DropdownMenu>
+                            </DropdownMenu>)}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -504,9 +519,7 @@ export function InstancesPage() {
                       {isBlocked && (
                         <TableRow className="bg-red-50 dark:bg-red-950/20">
                           <TableCell colSpan={5} className="py-2 px-6 text-sm text-red-600 dark:text-red-400 border-t border-red-100 dark:border-red-900">
-                            {isSuspended
-                              ? "Your instance has been suspended. Please pay to reactivate it."
-                              : "Your instance has been Stopped due to non-payment. You can activate this instance by extending your subscription."}
+                            {isBlocked && t("blockedMessage")}
                           </TableCell>
                         </TableRow>
                       )}

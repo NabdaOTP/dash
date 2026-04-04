@@ -33,3 +33,10 @@ export async function deleteInstance(id: string): Promise<void> {
 export async function rotateApiKey(): Promise<{ apiKey: string }> {
   return api.post<{ apiKey: string }>("/api/v1/api-keys/rotate", undefined, instanceScope);
 }
+
+export async function configureWebhook(data: {
+  webhookUrl: string;
+  webhookEnabled: boolean;
+}): Promise<void> {
+  return api.patch<void>("/api/v1/instances/webhook", data, instanceScope);
+}

@@ -17,6 +17,7 @@ import { useAuth } from "@/features/auth/context/auth-context";
 import type { WhatsAppStatus } from "../types";
 import { toast } from "sonner";
 import QRCode from "qrcode";
+import { useTranslations } from "next-intl";
 
 interface WhatsAppSectionProps {
   instanceId: string;
@@ -92,6 +93,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const [sending, setSending] = useState(false);
   const [refreshingQr, setRefreshingQr] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const t = useTranslations("instances");
 
   const applyQr = useCallback(async (qrString: string | null) => {
     if (!qrString) { setQr(null); return; }
@@ -165,7 +167,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     }
   }, [instanceId, applyQr, refreshInstanceToken]);
 
-  
+
   useEffect(() => {
     if (error?.is401) return;
     fetchData(true);
@@ -199,7 +201,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           setRefreshingQr(false);
           return;
         }
-      } catch {}
+      } catch { }
 
       if (attempts < maxAttempts) {
         await new Promise((res) => setTimeout(res, 5000));
@@ -303,14 +305,14 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
       <Card>
         <CardHeader>
-          <h3 className="text-xl font-semibold">Connect WhatsApp</h3>
+          <h3 className="text-xl font-semibold">{t("connectWhatsApp")}</h3>
         </CardHeader>
         <CardContent className="space-y-6">
           {isConnected ? (
             <div className="flex flex-col items-center justify-center py-10 bg-green-50/50 dark:bg-green-950/10 rounded-lg gap-3">
               <CheckCircle2 className="h-14 w-14 text-green-500" />
               <p className="text-lg font-semibold text-green-700 dark:text-green-400">
-                WhatsApp Connected
+                {t("whatsappConnected")}
               </p>
               {displayPhone && (
                 <p className="text-sm text-muted-foreground font-mono">{displayPhone}</p>
@@ -328,29 +330,29 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
             <div className="text-center py-10 bg-muted/40 rounded-lg">
               <p className="text-lg font-medium">No QR code available</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Click Connect to generate a QR code
+                {t("clickConnectToGenerate")}
               </p>
             </div>
           )}
 
           {!isConnected && (
             <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
-              <li>Open WhatsApp on your phone</li>
-              <li>Go to Settings → Linked Devices</li>
-              <li>Tap "Link a Device"</li>
-              <li>Scan the QR code above</li>
+              <li>{t("openWhatsapp")}</li>
+              <li>{t("goToSettings")}</li>
+              <li>{t("tapLinkDevice")}</li>
+              <li>{t("scanQrCode")}</li>
             </ol>
           )}
 
           <div className="flex flex-wrap gap-3">
             <Button onClick={handleConnect} disabled={isConnected || connecting}>
               {connecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Connect
+              {t("connect")}
             </Button>
             {!isConnected && (
               <Button variant="outline" onClick={handleRefreshQr} disabled={refreshingQr}>
                 {refreshingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Refresh QR
+                {t("refreshQr")}
               </Button>
             )}
           </div>
@@ -360,7 +362,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <h3 className="text-xl font-semibold">Connection Status</h3>
+            <h3 className="text-xl font-semibold">{t("connectionStatus")}</h3>
             <Badge
               variant={isConnected ? "default" : "secondary"}
               className="text-sm px-3 py-1"
@@ -412,9 +414,9 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
           </div>
 
           <div className="border-t pt-6 space-y-4">
-            <h4 className="font-medium">Send Message</h4>
+            <h4 className="font-medium">{t("sendMessage")}</h4>
             <div className="space-y-2">
-              <Label htmlFor="send-phone">Phone number</Label>
+              <Label htmlFor="send-phone">{t("phoneNumber")}</Label>
               <Input
                 id="send-phone"
                 placeholder="+1234567890"
@@ -425,7 +427,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="send-message">Message</Label>
+              <Label htmlFor="send-message">{t("message")}</Label>
               <Textarea
                 id="send-message" placeholder="Your message here..."
                 value={sendText} onChange={(e) => setSendText(e.target.value)}
@@ -437,9 +439,9 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
               className="w-full bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white"
             >
               {sending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("sending")}</>
               ) : (
-                <><Send className="h-4 w-4 mr-2" />Send Message</>
+                <><Send className="h-4 w-4 mr-2" />{t("send")}</>
               )}
             </Button>
           </div>

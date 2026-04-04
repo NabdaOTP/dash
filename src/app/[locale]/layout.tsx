@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Alexandria, Roboto, Roboto_Mono } from "next/font/google";
+import { Zain } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -8,6 +9,13 @@ import { ThemeProvider } from "@/features/layout/components/theme-provider";
 import { AuthProvider } from "@/features/auth/context/auth-context";
 import "../globals.css";
 import { Toaster } from "sonner";
+
+const zain = Zain({
+  weight: ["300", "400", "700"],   
+  subsets: ["arabic", "latin"],                  
+  variable: "--font-zain",                       
+  display: "swap",                               
+});
 
 const roboto = Roboto({
   variable: "--font-roboto",

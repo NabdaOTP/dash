@@ -53,6 +53,7 @@
 }
 
 :root {
+  --font-zain: "Zain", system-ui, sans-serif;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -108,7 +109,7 @@
 }
 
 .font-ar {
-  --font-app-sans: var(--font-alexandria);
+  --font-app-sans: var(--font-zain);
 }
 
 .dark {

@@ -45,6 +45,7 @@ import { notFound } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export function InstanceDetailView({ id, locale }: { id: string; locale: string }) {
   const { selectInstance } = useAuth();
@@ -57,6 +58,7 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
   const [whatsAppAction, setWhatsAppAction] = useState<"disconnect" | "restart" | "change" | null>(null);
   const [autoRenew, setAutoRenewState] = useState(false);
   const [autoRenewLoading, setAutoRenewLoading] = useState(false);
+  const t = useTranslations("instances");
 
   const loadInstance = useCallback(async () => {
     if (!id) return;
@@ -104,7 +106,7 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
     } catch {
-      toast.error("Failed to copy to clipboard");
+      toast.error(t("copyFailed"));
     }
   };
 
@@ -114,10 +116,10 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
     try {
       const result = await rotateApiKey();
       setInstance((prev) => prev ? { ...prev, apiKey: result.apiKey } : prev);
-      toast.success("Token rotated successfully");
+      toast.success(t("tokenRotated"));
       setShowRotateDialog(false);
     } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to rotate token");
+      toast.error((err as { message?: string })?.message ?? t("tokenRotateFailed"));
     } finally {
       setRotatingToken(false);
     }
@@ -127,9 +129,9 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
     setWhatsAppAction(reason === "logout" ? "disconnect" : "change");
     try {
       await disconnect();
-      toast.success(reason === "logout" ? "WhatsApp disconnected" : "WhatsApp disconnected. Scan QR to connect a new number.");
+      toast.success(reason === "logout" ? t("whatsappDisconnected") : t("whatsappChanged"));
     } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to disconnect");
+      toast.error((err as { message?: string })?.message ?? t("disconnectFailed"));
     } finally {
       setWhatsAppAction(null);
     }
@@ -139,9 +141,9 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
     setWhatsAppAction("restart");
     try {
       await restart();
-      toast.success("WhatsApp restart requested");
+      toast.success(t("whatsappRestarted"));
     } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to restart WhatsApp");
+      toast.error((err as { message?: string })?.message ?? t("restartFailed"));
     } finally {
       setWhatsAppAction(null);
     }
@@ -153,9 +155,9 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
     setAutoRenewState(checked);
     try {
       await setAutoRenew(checked);
-      toast.success("Auto-renew updated");
+      toast.success(t("autoRenewUpdated"));
     } catch (err: unknown) {
-      toast.error((err as { message?: string })?.message ?? "Failed to update auto-renew");
+      toast.error((err as { message?: string })?.message ?? t("autoRenewFailed"));
       setAutoRenewState(prev);
     } finally {
       setAutoRenewLoading(false);
@@ -174,10 +176,10 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
     return (
       <div className="p-12 text-center max-w-2xl mx-auto">
         <div className="text-6xl mb-6"><DoorClosedLocked /></div>
-        <h2 className="text-3xl font-bold">Payment Required</h2>
-        <p className="mt-3 text-muted-foreground">Complete payment to activate this instance and scan QR code.</p>
+        <h2 className="text-3xl font-bold">{t("paymentRequired")}</h2>
+        <p className="mt-3 text-muted-foreground">{t("paymentRequiredDesc")}</p>
         <Button asChild size="lg" className="mt-8">
-          <Link href={`/${locale}/billing/subscribe?instanceId=${id}`}>Pay $10/month Now</Link>
+          <Link href={`/${locale}/billing/subscribe?instanceId=${id}`}>{t("payNow")}</Link>
         </Button>
       </div>
     );
@@ -195,11 +197,11 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/${locale}/dashboard`}>Home</BreadcrumbLink>
+                <BreadcrumbLink href={`/${locale}/dashboard`}>{t("home")}</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={`/${locale}/instances`}>Instances</BreadcrumbLink>
+                <BreadcrumbLink href={`/${locale}/instances`}>{t("instances")}</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
@@ -212,8 +214,8 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
         <div className="border-b bg-card px-4 sm:px-6 py-4 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              <span className="text-lg sm:text-2xl font-semibold break-all">Instance #{id.slice(0, 8)}</span>
-              <span className="text-muted-foreground text-sm sm:text-base">{instance.name || "Unnamed"}</span>
+              <span className="text-lg sm:text-2xl font-semibold break-all">{t("instanceTitle")}{id.slice(0, 8)}</span>
+              <span className="text-muted-foreground text-sm sm:text-base">{instance.name || t("unnamed")}</span>
             </div>
           </div>
 
@@ -221,39 +223,39 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
             <a href="https://api.nabdaotp.com/docs" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
               <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                 <BookText className="h-4 w-4 mr-1" />
-                API Docs
+                {t("apiDocs")}
               </Button>
             </a>
             <Link href={`/${locale}/instances/${id}/messages`} className="w-full sm:w-auto">
               <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                 <MessageCircle className="h-4 w-4 mr-1" />
-                Messages
+                {t("messages")}
               </Button>
             </Link>
             {/*  Invoices button */}
             <Link href={`/${locale}/instances/${id}/invoices`} className="w-full sm:w-auto">
               <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                 <CreditCard className="h-4 w-4 mr-1" />
-                Invoices
+                {t("invoices")}
               </Button>
             </Link>
             <Button variant="ghost" size="sm" className="w-full sm:w-auto text-destructive"
               onClick={() => handleWhatsAppDisconnect("logout")} disabled={whatsAppAction === "disconnect"}
             >
               {whatsAppAction === "disconnect" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <LogOut className="h-4 w-4 mr-1" />}
-              Log out
+              {t("logout")}
             </Button>
             <Button variant="ghost" size="sm" className="w-full sm:w-auto"
               onClick={() => handleWhatsAppDisconnect("change")} disabled={whatsAppAction === "change"}
             >
               {whatsAppAction === "change" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRightLeft className="h-4 w-4 mr-1" />}
-              Change WA Number
+              {t("changeNumber")}
             </Button>
             <Button variant="ghost" size="sm" className="w-full sm:w-auto"
               onClick={handleWhatsAppRestart} disabled={whatsAppAction === "restart"}
             >
               {whatsAppAction === "restart" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCw className="h-4 w-4 mr-1" />}
-              Restart
+              {t("restart")}
             </Button>
           </div>
         </div>
@@ -261,66 +263,76 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
         <div className="p-6 max-w-7xl mx-auto">
           <Card className="overflow-hidden border border-border shadow-sm">
             <CardHeader className="bg-muted/30 py-4">
-              <CardTitle className="text-base font-semibold">Credentials</CardTitle>
+              <CardTitle className="text-base font-semibold">{t("credentials")}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <table className="w-full table-fixed">
-                <thead>
-                  <tr className="border-b bg-[#ede9fe] border-[#c4b5fd]">
-                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3 w-40">Auth Status</th>
-                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">API URL</th>
-                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">Instance ID</th>
-                    <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">Token</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-[#faf5ff]">
-                    <td className="px-4 py-4">
-                      <Badge className={
-                        instance.status === "ACTIVE" || instance.status === "active"
-                          ? "bg-[#16a34a] hover:bg-[#15803d] text-white border-0 text-xs font-semibold"
-                          : instance.status === "TRIAL"
-                            ? "bg-blue-500 hover:bg-blue-600 text-white border-0 text-xs font-semibold"
-                            : instance.status === "PAYMENT_PENDING"
-                              ? "bg-yellow-500 hover:bg-yellow-600 text-white border-0 text-xs font-semibold"
-                              : "bg-red-500 hover:bg-red-600 text-white border-0 text-xs font-semibold"
-                      }>
-                        {instance.status === "ACTIVE" || instance.status === "active" ? "Authenticated"
-                          : instance.status === "TRIAL" ? "Trial"
-                          : instance.status === "PAYMENT_PENDING" ? "Payment Pending"
-                          : instance.status === "inactive" ? "Inactive" : "Error"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Input readOnly value={apiUrl} className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default" />
-                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => handleCopy(apiUrl, "apiUrl")}>
-                          {copiedField === "apiUrl" ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Input readOnly value={id} className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default" />
-                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => handleCopy(id, "instanceId")}>
-                          {copiedField === "instanceId" ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Input readOnly value={instance.apiKey} className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default" />
-                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => handleCopy(tokenValue, "token")}>
-                          {copiedField === "token" ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => setShowRotateDialog(true)} title="Rotate token">
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed min-w-200">
+                  <thead>
+                    <tr className="border-b bg-[#ede9fe] border-[#c4b5fd]">
+                      <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3 w-40">
+                        {t("authStatus")}
+                      </th>
+                      <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">
+                        {t("apiUrl")}
+                      </th>
+                      <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">
+                        {t("instanceId")}
+                      </th>
+                      <th className="text-left text-sm font-medium text-[#5b21b6] px-4 py-3">
+                        {t("token")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-[#faf5ff]">
+                      <td className="px-4 py-4">
+                        <Badge className={
+                          instance.status === "ACTIVE" || instance.status === "active"
+                            ? "bg-[#16a34a] hover:bg-[#15803d] text-white border-0 text-xs font-semibold"
+                            : instance.status === "TRIAL"
+                              ? "bg-blue-500 hover:bg-blue-600 text-white border-0 text-xs font-semibold"
+                              : instance.status === "PAYMENT_PENDING"
+                                ? "bg-yellow-500 hover:bg-yellow-600 text-white border-0 text-xs font-semibold"
+                                : "bg-red-500 hover:bg-red-600 text-white border-0 text-xs font-semibold"
+                        }>
+                          {instance.status === "ACTIVE" || instance.status === "active" ? "Authenticated"
+                            : instance.status === "TRIAL" ? "Trial"
+                              : instance.status === "PAYMENT_PENDING" ? "Payment Pending"
+                                : instance.status === "inactive" ? "Inactive" : "Error"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Input readOnly value={apiUrl} className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => handleCopy(apiUrl, "apiUrl")}>
+                            {copiedField === "apiUrl" ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Input readOnly value={id} className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => handleCopy(id, "instanceId")}>
+                            {copiedField === "instanceId" ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Input readOnly value={instance.apiKey} className="text-sm font-mono bg-white border border-[#d1d5db] rounded-md px-3 py-1.5 w-full truncate focus:outline-none text-gray-700 cursor-default" />
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => handleCopy(tokenValue, "token")}>
+                            {copiedField === "token" ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-700" onClick={() => setShowRotateDialog(true)} title="Rotate token">
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
 
@@ -328,16 +340,21 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
             {instance && <WhatsAppSection key={instance.id} instanceId={id} locale={locale} />}
           </div>
 
+          {/* <WebhookSection
+            webhookUrl={instance.webhookUrl}
+            webhookEnabled={instance.webhookEnabled}
+          /> */}
+
           {(instance.status === "ACTIVE" || instance.status === "TRIAL") && (
             <Card className="mt-6 overflow-hidden border border-border shadow-sm">
               <CardHeader className="bg-purple-100/30 py-4 pt-6">
-                <CardTitle className="text-base font-semibold">Subscription Settings</CardTitle>
+                <CardTitle className="text-base font-semibold">{t("subscriptionSettings")}</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-medium">Auto-renew subscription</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">Automatically renew your subscription when it expires</p>
+                    <p className="font-medium">{t("autoRenew")}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{t("autoRenewDesc")}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {autoRenewLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -352,10 +369,10 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
 
       <Dialog open={showRotateDialog} onOpenChange={setShowRotateDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Rotate Token</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground mt-2">Are you sure you want to rotate the token?</p>
+          <DialogHeader><DialogTitle>{t("rotateToken")}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground mt-2">{t("rotateTokenConfirm")}</p>
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setShowRotateDialog(false)} disabled={rotatingToken}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowRotateDialog(false)} disabled={rotatingToken}>{t("cancel")}</Button>
             <Button className="bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white" onClick={handleRotateToken} disabled={rotatingToken}>
               {rotatingToken ? <Loader2 className="h-4 w-4 animate-spin" /> : "Rotate Token"}
             </Button>
