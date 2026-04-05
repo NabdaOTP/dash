@@ -46,6 +46,8 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { WebhookSection } from "./WebhookSection";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
 export function InstanceDetailView({ id, locale }: { id: string; locale: string }) {
   const { selectInstance } = useAuth();
@@ -59,6 +61,9 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
   const [autoRenew, setAutoRenewState] = useState(false);
   const [autoRenewLoading, setAutoRenewLoading] = useState(false);
   const t = useTranslations("instances");
+  const tCommon = useTranslations("common");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"logout" | "change" | "restart" | null>(null);
 
   const loadInstance = useCallback(async () => {
     if (!id) return;
@@ -239,20 +244,45 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
                 {t("invoices")}
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" className="w-full sm:w-auto text-destructive"
-              onClick={() => handleWhatsAppDisconnect("logout")} disabled={whatsAppAction === "disconnect"}
+            {/* Logout Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full sm:w-auto text-destructive"
+              onClick={() => {
+                setPendingAction("logout");
+                setShowConfirmDialog(true);
+              }}
+              disabled={whatsAppAction === "disconnect"}
             >
               {whatsAppAction === "disconnect" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <LogOut className="h-4 w-4 mr-1" />}
               {t("logout")}
             </Button>
-            <Button variant="ghost" size="sm" className="w-full sm:w-auto"
-              onClick={() => handleWhatsAppDisconnect("change")} disabled={whatsAppAction === "change"}
+            {/* Change Number Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setPendingAction("change");
+                setShowConfirmDialog(true);
+              }}
+              disabled={whatsAppAction === "change"}
             >
               {whatsAppAction === "change" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRightLeft className="h-4 w-4 mr-1" />}
               {t("changeNumber")}
             </Button>
-            <Button variant="ghost" size="sm" className="w-full sm:w-auto"
-              onClick={handleWhatsAppRestart} disabled={whatsAppAction === "restart"}
+
+            {/* Restart Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setPendingAction("restart");
+                setShowConfirmDialog(true);
+              }}
+              disabled={whatsAppAction === "restart"}
             >
               {whatsAppAction === "restart" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RotateCw className="h-4 w-4 mr-1" />}
               {t("restart")}
@@ -288,7 +318,7 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
                     <tr className="bg-[#faf5ff]">
                       <td className="px-4 py-4">
                         <Badge className={
-                          instance.status === "ACTIVE" || instance.status === "active"
+                          instance.status === "ACTIVE" || instance.status === t("active")
                             ? "bg-[#16a34a] hover:bg-[#15803d] text-white border-0 text-xs font-semibold"
                             : instance.status === "TRIAL"
                               ? "bg-blue-500 hover:bg-blue-600 text-white border-0 text-xs font-semibold"
@@ -296,9 +326,9 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
                                 ? "bg-yellow-500 hover:bg-yellow-600 text-white border-0 text-xs font-semibold"
                                 : "bg-red-500 hover:bg-red-600 text-white border-0 text-xs font-semibold"
                         }>
-                          {instance.status === "ACTIVE" || instance.status === "active" ? "Authenticated"
+                          {instance.status === "ACTIVE" || instance.status === "active" ? t("authenticated")
                             : instance.status === "TRIAL" ? "Trial"
-                              : instance.status === "PAYMENT_PENDING" ? "Payment Pending"
+                              : instance.status === "PAYMENT_PENDING" ? t("paymentPending")
                                 : instance.status === "inactive" ? "Inactive" : "Error"}
                         </Badge>
                       </td>
@@ -335,16 +365,16 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
               </div>
             </CardContent>
           </Card>
-
+          {/* What's app section */}
           <div className="mt-8">
             {instance && <WhatsAppSection key={instance.id} instanceId={id} locale={locale} />}
           </div>
-
-          {/* <WebhookSection
+          {/* WebhookSection */}
+          <WebhookSection
             webhookUrl={instance.webhookUrl}
             webhookEnabled={instance.webhookEnabled}
-          /> */}
-
+          />
+          {/* Subscription section */}
           {(instance.status === "ACTIVE" || instance.status === "TRIAL") && (
             <Card className="mt-6 overflow-hidden border border-border shadow-sm">
               <CardHeader className="bg-purple-100/30 py-4 pt-6">
@@ -366,6 +396,55 @@ export function InstanceDetailView({ id, locale }: { id: string; locale: string 
           )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {pendingAction === "logout" && t("confirmLogout")}
+              {pendingAction === "change" && t("confirmChangeNumber")}
+              {pendingAction === "restart" && t("confirmRestart")}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingAction === "logout" && t("confirmLogoutDesc")}
+              {pendingAction === "change" && t("confirmChangeNumberDesc")}
+              {pendingAction === "restart" && t("confirmRestartDesc")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+              disabled={whatsAppAction !== null}
+            >
+              {tCommon("actions.cancel")}
+            </Button>
+            <Button
+              variant={pendingAction === "logout" ? "destructive" : "default"}
+              onClick={async () => {
+                if (!pendingAction) return;
+
+                setShowConfirmDialog(false);
+
+                if (pendingAction === "logout" || pendingAction === "change") {
+                  await handleWhatsAppDisconnect(pendingAction);
+                } else if (pendingAction === "restart") {
+                  await handleWhatsAppRestart();
+                }
+
+                setPendingAction(null);
+              }}
+              disabled={whatsAppAction !== null}
+            >
+              {pendingAction === "logout" && t("logout")}
+              {pendingAction === "change" && t("changeNumber")}
+              {pendingAction === "restart" && t("restart")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showRotateDialog} onOpenChange={setShowRotateDialog}>
         <DialogContent>

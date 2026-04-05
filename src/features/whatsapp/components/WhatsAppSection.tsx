@@ -11,13 +11,22 @@ import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { RefreshCw, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { getQrCode, getStatus, connect, disconnect, restart } from "../services/whatsapp-service";
-import { sendMessage } from "@/features/messages/services/messages-service";
+import { sendMessage, uploadMedia } from "@/features/messages/services/messages-service";
 import { getInstance } from "@/features/instances/services/instances-service";
 import { useAuth } from "@/features/auth/context/auth-context";
 import type { WhatsAppStatus } from "../types";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { useTranslations } from "next-intl";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SendMessageWithMediaRequest } from "@/features/messages/types";
 
 interface WhatsAppSectionProps {
   instanceId: string;
@@ -94,6 +103,12 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const [refreshingQr, setRefreshingQr] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const t = useTranslations("instances");
+  const tCommon = useTranslations("common");
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
+  const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video" | "audio" | "document" | "sticker" | null>(null);
 
   const applyQr = useCallback(async (qrString: string | null) => {
     if (!qrString) { setQr(null); return; }
@@ -279,6 +294,108 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     }
   }, [sendPhone, sendText, apiKey, instanceId, refreshInstanceToken]);
 
+  // const handleSendMessage = useCallback(async () => {
+  //   const phone = sendPhone.trim();
+  //   const message = sendText.trim();
+
+  //   if (!phone) {
+  //     toast.error("Please enter a phone number");
+  //     return;
+  //   }
+
+  //   if (!message && !selectedMediaId) {
+  //     toast.error("Please enter a message or attach a media file");
+  //     return;
+  //   }
+
+  //   if (!phone.startsWith("+")) {
+  //     toast.error("Phone number must start with + and include country code");
+  //     return;
+  //   }
+
+  //   if (!apiKey) {
+  //     toast.error("API key not available. Please refresh the page.");
+  //     return;
+  //   }
+
+  //   setSending(true);
+
+  //   try {
+  //     const body = {
+  //       phone,
+  //       ...(message && { message }),                    // نفس الـ logic القديم
+  //       ...(selectedMediaId && { mediaId: selectedMediaId }),
+  //     } as SendMessageWithMediaRequest;
+
+  //     await sendMessage(body, apiKey);
+
+  //     toast.success("Message sent successfully");
+
+  //     // Clear form
+  //     setSendText("");
+  //     setSelectedMediaId(null);
+  //     setAttachedFileName(null);
+
+  //   } catch (err: unknown) {
+  //     const errStatus = (err as { status?: number })?.status;
+  //     const msg = (err as { message?: string })?.message ?? "Failed to send message";
+
+  //     if (errStatus === 401) {
+  //       try {
+  //         await refreshInstanceToken();
+  //         const inst = await getInstance(instanceId);
+  //         if (inst.apiKey) {
+  //           setApiKey(inst.apiKey);
+  //           await sendMessage(body, inst.apiKey);
+  //           toast.success("Message sent");
+  //           setSendText("");
+  //           setSelectedMediaId(null);
+  //           setAttachedFileName(null);
+  //           return;
+  //         }
+  //       } catch {
+  //         // silent
+  //       }
+  //     }
+
+  //     toast.error(msg);
+  //   } finally {
+  //     setSending(false);
+  //   }
+  // }, [sendPhone, sendText, selectedMediaId, apiKey, instanceId, refreshInstanceToken]);
+
+  // const handleMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "video" | "audio" | "document" | "sticker") => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
+
+  //   // Size limit 100MB
+  //   if (file.size > 100 * 1024 * 1024) {
+  //     toast.error("File is too large. Maximum allowed size is 100MB.");
+  //     return;
+  //   }
+
+  //   try {
+  //     toast.loading(`Uploading ${type}...`, { id: "upload-toast" });
+
+  //     const response = await uploadMedia(file);
+
+  //     setSelectedMediaId(response.mediaId);
+  //     setAttachedFileName(file.name);
+  //     setSelectedMediaType(type);
+
+  //     toast.success(`Successfully uploaded ${type}: ${file.name}`, {
+  //       id: "upload-toast"
+  //     });
+
+  //     // Clear input
+  //     e.target.value = "";
+
+  //   } catch (err: unknown) {
+  //     const message = (err as { message?: string })?.message ?? "Failed to upload media";
+  //     toast.error(message, { id: "upload-toast" });
+  //   }
+  // };
+
   if (loading) return <WhatsAppSkeleton />;
 
   if (error) {
@@ -302,49 +419,50 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const displayPhone = status?.phoneNumber || status?.phone;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-      <Card>
-        <CardHeader>
-          <h3 className="text-xl font-semibold">{t("connectWhatsApp")}</h3>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {isConnected ? (
-            <div className="flex flex-col items-center justify-center py-10 bg-green-50/50 dark:bg-green-950/10 rounded-lg gap-3">
-              <CheckCircle2 className="h-14 w-14 text-green-500" />
-              <p className="text-lg font-semibold text-green-700 dark:text-green-400">
-                {t("whatsappConnected")}
-              </p>
-              {displayPhone && (
-                <p className="text-sm text-muted-foreground font-mono">{displayPhone}</p>
-              )}
-            </div>
-          ) : qr ? (
-            <div className="flex justify-center">
-              <img
-                src={qr}
-                alt="WhatsApp QR Code"
-                className="w-72 h-72 object-contain border rounded-lg shadow-sm"
-              />
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-muted/40 rounded-lg">
-              <p className="text-lg font-medium">No QR code available</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {t("clickConnectToGenerate")}
-              </p>
-            </div>
-          )}
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <Card>
+          <CardHeader>
+            <h3 className="text-xl font-semibold">{t("connectWhatsApp")}</h3>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {isConnected ? (
+              <div className="flex flex-col items-center justify-center py-10 bg-green-50/50 dark:bg-green-950/10 rounded-lg gap-3">
+                <CheckCircle2 className="h-14 w-14 text-green-500" />
+                <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                  {t("whatsappConnected")}
+                </p>
+                {displayPhone && (
+                  <p className="text-sm text-muted-foreground font-mono">{displayPhone}</p>
+                )}
+              </div>
+            ) : qr ? (
+              <div className="flex justify-center">
+                <img
+                  src={qr}
+                  alt="WhatsApp QR Code"
+                  className="w-72 h-72 object-contain border rounded-lg shadow-sm"
+                />
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-muted/40 rounded-lg">
+                <p className="text-lg font-medium">{t("noQrAvailable")}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {t("clickConnectToGenerate")}
+                </p>
+              </div>
+            )}
 
-          {!isConnected && (
-            <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
-              <li>{t("openWhatsapp")}</li>
-              <li>{t("goToSettings")}</li>
-              <li>{t("tapLinkDevice")}</li>
-              <li>{t("scanQrCode")}</li>
-            </ol>
-          )}
+            {!isConnected && (
+              <ol className="list-decimal pl-6 space-y-2 text-sm text-muted-foreground">
+                <li>{t("openWhatsapp")}</li>
+                <li>{t("goToSettings")}</li>
+                <li>{t("tapLinkDevice")}</li>
+                <li>{t("scanQrCode")}</li>
+              </ol>
+            )}
 
-          <div className="flex flex-wrap gap-3">
+            {/* <div className="flex flex-wrap gap-3">
             <Button onClick={handleConnect} disabled={isConnected || connecting}>
               {connecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {t("connect")}
@@ -355,98 +473,251 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
                 {t("refreshQr")}
               </Button>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </div> */}
+            <div className="flex flex-wrap gap-3">
+              {!isConnected && (
+                <>
+                  <Button onClick={handleConnect} disabled={connecting}>
+                    {connecting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {t("connect")}
+                  </Button>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-semibold">{t("connectionStatus")}</h3>
-            <Badge
-              variant={isConnected ? "default" : "secondary"}
-              className="text-sm px-3 py-1"
+                  <Button variant="outline" onClick={handleRefreshQr} disabled={refreshingQr}>
+                    {refreshingQr ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    {t("refreshQr")}
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-semibold">{t("connectionStatus")}</h3>
+              <Badge
+                variant={isConnected ? "default" : "secondary"}
+                className="text-sm px-3 py-1"
+              >
+                {isConnected
+                  ? t("connected")
+                  : t("disconnected")
+                }
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {displayPhone && (
+              <p className="text-sm">
+                <strong>{t("phone")}</strong> {displayPhone}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDisconnectDialog(true)}
+              // disabled={whatsAppAction === "disconnect"}
+              >
+                {t("disconnect")}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await restart();
+                    toast.success("Restart requested");
+                    await fetchData();
+                  } catch (e) {
+                    toast.error((e as { message?: string })?.message ?? "Failed to restart");
+                  }
+                }}
+              >
+                {t("restart")}
+              </Button>
+              <Button variant="ghost" onClick={() => fetchData()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {t("refresh")}
+              </Button>
+            </div>
+
+            <div className="border-t pt-6 space-y-4">
+              <h4 className="font-medium">{t("sendMessage")}</h4>
+              <div className="space-y-2">
+                <Label htmlFor="send-phone">{t("phoneNumber")}</Label>
+                <Input
+                  id="send-phone"
+                  placeholder="+1234567890"
+                  value={sendPhone}
+                  onChange={(e) => setSendPhone(e.target.value)}
+                  disabled={sending}
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="send-message">{t("message")}</Label>
+                <Textarea
+                  id="send-message" placeholder={t("textArea")}
+                  value={sendText} onChange={(e) => setSendText(e.target.value)}
+                  disabled={sending} rows={3} className="resize-none"
+                />
+              </div>
+              <Button
+                onClick={handleSendMessage} disabled={sending || !apiKey}
+                className="w-full bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white"
+              >
+                {sending ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("sending")}</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-2" />{t("send")}</>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card> */}
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-semibold">{t("connectionStatus")}</h3>
+              <Badge
+                variant={isConnected ? "default" : "secondary"}
+                className="text-sm px-3 py-1"
+              >
+                {isConnected ? t("connected") : t("disconnected")}
+              </Badge>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            {displayPhone && (
+              <p className="text-sm">
+                <strong>{t("phone")}</strong> {displayPhone}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDisconnectDialog(true)}
+              >
+                {t("disconnect")}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await restart();
+                    toast.success(t("restartRequested"));
+                    await fetchData();
+                  } catch (e) {
+                    toast.error((e as { message?: string })?.message ?? t("restartFailed"));
+                  }
+                }}
+              >
+                {t("restart")}
+              </Button>
+              <Button variant="ghost" onClick={() => fetchData()}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {t("refresh")}
+              </Button>
+            </div>
+
+            {/* Send Message Section */}
+            <div className="border-t pt-6 space-y-4">
+              <h4 className="font-medium">{t("sendMessage")}</h4>
+
+              <div className="space-y-4">
+                {/* Phone Number */}
+                <div className="space-y-2">
+                  <Label htmlFor="send-phone">{t("phoneNumber")}</Label>
+                  <Input
+                    id="send-phone"
+                    placeholder="+1234567890"
+                    value={sendPhone}
+                    onChange={(e) => setSendPhone(e.target.value)}
+                    disabled={sending}
+                    className="font-mono"
+                  />
+                </div>
+
+                {/* Message Text */}
+                <div className="space-y-2">
+                  <Label htmlFor="send-message">{t("message")}</Label>
+                  <Textarea
+                    id="send-message"
+                    placeholder={t("textArea")}
+                    value={sendText}
+                    onChange={(e) => setSendText(e.target.value)}
+                    disabled={sending}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+
+                {/* Media Attachment Section */}
+                
+
+                {/* Send Button */}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={sending || !apiKey}
+                  className="w-full bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t("sending")}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      {t("send")}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Disconnect Confirmation Dialog */}
+      <Dialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("confirmDisconnect")}</DialogTitle>
+            <DialogDescription>
+              {t("confirmDisconnectDesc")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDisconnectDialog(false)}
             >
-              {status?.status?.toUpperCase() || "UNKNOWN"}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {displayPhone && (
-            <p className="text-sm">
-              <strong>Phone:</strong> {displayPhone}
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-3">
+              {tCommon("actions.cancel")}
+            </Button>
             <Button
               variant="destructive"
               onClick={async () => {
+                setShowDisconnectDialog(false);
                 try {
                   await disconnect();
-                  toast.success("Disconnected");
+                  toast.success(t("whatsappDisconnected"));
                   await fetchData();
                 } catch (e) {
-                  toast.error((e as { message?: string })?.message ?? "Failed to disconnect");
+                  toast.error((e as { message?: string })?.message ?? t("disconnectFailed"));
                 }
               }}
             >
-              Disconnect
+              {t("disconnect")}
             </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  await restart();
-                  toast.success("Restart requested");
-                  await fetchData();
-                } catch (e) {
-                  toast.error((e as { message?: string })?.message ?? "Failed to restart");
-                }
-              }}
-            >
-              Restart
-            </Button>
-            <Button variant="ghost" onClick={() => fetchData()}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
-
-          <div className="border-t pt-6 space-y-4">
-            <h4 className="font-medium">{t("sendMessage")}</h4>
-            <div className="space-y-2">
-              <Label htmlFor="send-phone">{t("phoneNumber")}</Label>
-              <Input
-                id="send-phone"
-                placeholder="+1234567890"
-                value={sendPhone}
-                onChange={(e) => setSendPhone(e.target.value)}
-                disabled={sending}
-                className="font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="send-message">{t("message")}</Label>
-              <Textarea
-                id="send-message" placeholder="Your message here..."
-                value={sendText} onChange={(e) => setSendText(e.target.value)}
-                disabled={sending} rows={3} className="resize-none"
-              />
-            </div>
-            <Button
-              onClick={handleSendMessage} disabled={sending || !apiKey}
-              className="w-full bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white"
-            >
-              {sending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("sending")}</>
-              ) : (
-                <><Send className="h-4 w-4 mr-2" />{t("send")}</>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -50,7 +50,7 @@ export function DashboardPage() {
             <div>
               <p className="text-4xl font-bold text-white">{activeCount}</p>
               <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
-                ACTIVE Instance
+                {t("activeInstance")}
               </p>
             </div>
             <Layers className="h-14 w-14 text-white/30" />
@@ -59,7 +59,7 @@ export function DashboardPage() {
             href="/instances"
             className="flex items-center justify-between bg-[#43a047] px-6 py-3 hover:bg-[#388e3c] transition-colors group"
           >
-            <span className="text-white font-medium text-sm">View Details</span>
+            <span className="text-white font-medium text-sm">{t("viewDetails")}</span>
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -68,7 +68,7 @@ export function DashboardPage() {
             <div>
               <p className="text-4xl font-bold text-white">{stoppedCount}</p>
               <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
-                STOPPED instance
+                {t("stoppedInstance")}
               </p>
             </div>
             <Layers className="h-14 w-14 text-white/30" />
@@ -77,7 +77,7 @@ export function DashboardPage() {
             href="/instances"
             className="flex items-center justify-between bg-[#e53935] px-6 py-3 hover:bg-[#c62828] transition-colors group"
           >
-            <span className="text-white font-medium text-sm">View Details</span>
+            <span className="text-white font-medium text-sm">{t("viewDetails")}</span>
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
