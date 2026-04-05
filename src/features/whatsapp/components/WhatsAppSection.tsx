@@ -1,23 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import Link from "next/link";
-import { RefreshCw, Send, Loader2, CheckCircle2 } from "lucide-react";
-import { getQrCode, getStatus, connect, disconnect, restart } from "../services/whatsapp-service";
-import { sendMessage, uploadMedia } from "@/features/messages/services/messages-service";
-import { getInstance } from "@/features/instances/services/instances-service";
-import { useAuth } from "@/features/auth/context/auth-context";
-import type { WhatsAppStatus } from "../types";
-import { toast } from "sonner";
-import QRCode from "qrcode";
-import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +11,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SendMessageWithMediaRequest } from "@/features/messages/types";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/features/auth/context/auth-context";
+import { getInstance } from "@/features/instances/services/instances-service";
+import { sendMessage } from "@/features/messages/services/messages-service";
+import { CheckCircle2, Loader2, RefreshCw, Send } from "lucide-react";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
+import QRCode from "qrcode";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { connect, disconnect, getQrCode, getStatus, restart } from "../services/whatsapp-service";
+import type { WhatsAppStatus } from "../types";
 
 interface WhatsAppSectionProps {
   instanceId: string;
@@ -106,10 +105,7 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
   const tCommon = useTranslations("common");
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
-  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
-  const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video" | "audio" | "document" | "sticker" | null>(null);
-
+  
   const applyQr = useCallback(async (qrString: string | null) => {
     if (!qrString) { setQr(null); return; }
     try {
@@ -293,108 +289,6 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
       setSending(false);
     }
   }, [sendPhone, sendText, apiKey, instanceId, refreshInstanceToken]);
-
-  // const handleSendMessage = useCallback(async () => {
-  //   const phone = sendPhone.trim();
-  //   const message = sendText.trim();
-
-  //   if (!phone) {
-  //     toast.error("Please enter a phone number");
-  //     return;
-  //   }
-
-  //   if (!message && !selectedMediaId) {
-  //     toast.error("Please enter a message or attach a media file");
-  //     return;
-  //   }
-
-  //   if (!phone.startsWith("+")) {
-  //     toast.error("Phone number must start with + and include country code");
-  //     return;
-  //   }
-
-  //   if (!apiKey) {
-  //     toast.error("API key not available. Please refresh the page.");
-  //     return;
-  //   }
-
-  //   setSending(true);
-
-  //   try {
-  //     const body = {
-  //       phone,
-  //       ...(message && { message }),                    // نفس الـ logic القديم
-  //       ...(selectedMediaId && { mediaId: selectedMediaId }),
-  //     } as SendMessageWithMediaRequest;
-
-  //     await sendMessage(body, apiKey);
-
-  //     toast.success("Message sent successfully");
-
-  //     // Clear form
-  //     setSendText("");
-  //     setSelectedMediaId(null);
-  //     setAttachedFileName(null);
-
-  //   } catch (err: unknown) {
-  //     const errStatus = (err as { status?: number })?.status;
-  //     const msg = (err as { message?: string })?.message ?? "Failed to send message";
-
-  //     if (errStatus === 401) {
-  //       try {
-  //         await refreshInstanceToken();
-  //         const inst = await getInstance(instanceId);
-  //         if (inst.apiKey) {
-  //           setApiKey(inst.apiKey);
-  //           await sendMessage(body, inst.apiKey);
-  //           toast.success("Message sent");
-  //           setSendText("");
-  //           setSelectedMediaId(null);
-  //           setAttachedFileName(null);
-  //           return;
-  //         }
-  //       } catch {
-  //         // silent
-  //       }
-  //     }
-
-  //     toast.error(msg);
-  //   } finally {
-  //     setSending(false);
-  //   }
-  // }, [sendPhone, sendText, selectedMediaId, apiKey, instanceId, refreshInstanceToken]);
-
-  // const handleMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "video" | "audio" | "document" | "sticker") => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-
-  //   // Size limit 100MB
-  //   if (file.size > 100 * 1024 * 1024) {
-  //     toast.error("File is too large. Maximum allowed size is 100MB.");
-  //     return;
-  //   }
-
-  //   try {
-  //     toast.loading(`Uploading ${type}...`, { id: "upload-toast" });
-
-  //     const response = await uploadMedia(file);
-
-  //     setSelectedMediaId(response.mediaId);
-  //     setAttachedFileName(file.name);
-  //     setSelectedMediaType(type);
-
-  //     toast.success(`Successfully uploaded ${type}: ${file.name}`, {
-  //       id: "upload-toast"
-  //     });
-
-  //     // Clear input
-  //     e.target.value = "";
-
-  //   } catch (err: unknown) {
-  //     const message = (err as { message?: string })?.message ?? "Failed to upload media";
-  //     toast.error(message, { id: "upload-toast" });
-  //   }
-  // };
 
   if (loading) return <WhatsAppSkeleton />;
 
