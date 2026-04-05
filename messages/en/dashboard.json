@@ -23,5 +23,8 @@
   "createInstance": "Create New Instance",
   "createInstanceDesc": "Set up a new OTP instance",
   "viewDocs": "View API Docs",
-  "viewDocsDesc": "Explore the API reference"
+  "viewDocsDesc": "Explore the API reference",
+  "activeInstance": "ACTIVE Instance",
+  "stoppedInstance": "STOPPED Instance",
+  "viewDetails": "View Details"
 }

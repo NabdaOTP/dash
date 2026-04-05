@@ -23,5 +23,8 @@
   "createInstance": "إنشاء نسخة جديدة",
   "createInstanceDesc": "إعداد نسخة OTP جديدة",
   "viewDocs": "عرض توثيق API",
-  "viewDocsDesc": "استكشاف مرجع API"
+  "viewDocsDesc": "استكشاف مرجع API",
+  "activeInstance": "نسخة نشطة",
+  "stoppedInstance": "نسخة متوقفة",
+  "viewDetails": "عرض التفاصيل"
 }
