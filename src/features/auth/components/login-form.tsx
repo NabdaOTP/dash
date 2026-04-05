@@ -30,7 +30,7 @@ export function LoginForm() {
   const t = useTranslations("auth");
   const { login, loginWithToken } = useAuth();
 
-  
+
   function redirectByRole(user?: User | null) {
     if (user?.role === "ADMIN") {
       router.push("/admin");
@@ -84,7 +84,7 @@ export function LoginForm() {
       const result = await authService.verify2FA(twoFactorCode, email);
       if (result?.accessToken && result?.user) {
         loginWithToken(result.accessToken, result.user);
-        redirectByRole(result.user); 
+        redirectByRole(result.user);
         return;
       }
       router.push("/dashboard");
@@ -119,7 +119,7 @@ export function LoginForm() {
           {step === "credentials" && (
             <>
               <div className="text-center space-y-3">
-                <h1 className="text-2xl font-bold text-foreground">{t("login.title")}</h1>
+                {/* <h1 className="text-2xl font-bold text-foreground">{t("login.title")}</h1> */}
               </div>
 
               <div className="flex items-center gap-4">
@@ -179,9 +179,17 @@ export function LoginForm() {
                 </p>
               </form>
 
-              <p className="text-center text-sm text-muted-foreground">
-                {t("login.noAccount")}{" "}
-                <Link href="/signup" className="text-primary font-medium hover:underline">
+              <p className="text-center text-lg">
+                <span className="text-muted-foreground">
+                  {t("login.noAccount")}{" "}
+                </span>
+                <Link
+                  href="/signup"
+                  className="text-primary font-bold underline underline-offset-4 transition-all duration-200
+               hover:text-primary/90 
+               [text-shadow:0_1px_3px_rgb(168_85_247_/_0.3)] 
+               hover:[text-shadow:0_2px_6px_rgb(168_85_247_/_0.5)]"
+                >
                   {t("login.signUp")}
                 </Link>
               </p>

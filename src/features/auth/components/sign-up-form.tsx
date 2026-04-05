@@ -70,7 +70,14 @@ export function SignUpForm() {
       router.push("/dashboard");
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message || t("errors.generic"));
+        let errorMessage = err.message || t("errors.generic");
+
+        if (errorMessage.toLowerCase().includes("must be a valid phone number")) {
+          errorMessage = t("errors.validPhoneNumber") || "Must be a valid phone number";
+        }
+
+        setError(errorMessage);
+
       } else {
         setError(t("errors.generic"));
       }
@@ -253,9 +260,14 @@ export function SignUpForm() {
               {loading ? t("signup.submitting") : t("signup.submit")}
             </Button>
           </form>
-          <p className="text-center text-sm text-muted-foreground">
-            {t("signup.haveAccount")}{" "}
-            <Link href="/login" className="text-primary font-medium hover:underline">
+          <p className="text-center text-lg text-muted-foreground">
+            <span className="text-muted-foreground">
+              {t("signup.haveAccount")}{" "}
+            </span>
+            <Link href="/login" className="text-primary font-bold underline underline-offset-4 transition-all duration-200
+               hover:text-primary/90 
+               [text-shadow:0_1px_3px_rgb(168_85_247_/_0.3)] 
+               hover:[text-shadow:0_2px_6px_rgb(168_85_247_/_0.5)]">
               {t("signup.signIn")}
             </Link>
           </p>

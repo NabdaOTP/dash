@@ -1,8 +1,9 @@
+import AdminSubscriptionsPage from "@/features/admin/components/SubscriptionsPage";
 
 export default function page() {
   return (
     <>
-    <p>Working on it</p>
+    <AdminSubscriptionsPage/>
     </>
   )
 }
