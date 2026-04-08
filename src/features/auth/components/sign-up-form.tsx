@@ -29,7 +29,10 @@ import { useCountries } from "@/features/auth/hooks/use-countries";
 import { useCountryCodes } from "@/features/auth/hooks/use-country-codes";
 import { ApiError } from "@/lib/api-client";
 import { CountryCodeSelector } from "./country-code-selector";
-
+const _cache = {
+  countries: null as any,
+  codes: null as any,
+};
 export function SignUpForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -47,6 +50,7 @@ export function SignUpForm() {
   const t = useTranslations("auth");
   const locale = useLocale();
   const { register, login } = useAuth();
+
   const { countries, loading: countriesLoading } = useCountries(locale);
   const { countryCodes, loading: codesLoading } = useCountryCodes(locale);
 
@@ -85,6 +89,7 @@ export function SignUpForm() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
