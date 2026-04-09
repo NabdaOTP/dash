@@ -13,7 +13,7 @@ export async function getDashboardData(): Promise<DashboardStats> {
   ).length;
 
   const stoppedInstances = instList.filter(
-    (i) => i.status === "PAYMENT_PENDING" || i.status === "inactive" || i.status === "error"
+    (i) => i.status === "PAYMENT_PENDING" || i.status === "inactive" || i.status === "error" || i.status === "SUSPENDED"
   ).length;
 
   return { activeInstances, stoppedInstances };

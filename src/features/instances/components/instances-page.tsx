@@ -277,6 +277,12 @@ export function InstancesPage() {
     return 0;
   });
 
+  const firstInstanceId = instances.length > 0
+    ? [...instances].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    )[0].id
+    : null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -443,75 +449,83 @@ export function InstancesPage() {
                               </DropdownMenu>
                             )}
                             {/* More menu */}
-                            {((!isBlocked && true) || (isBlocked && instances.length > 1)) && (<DropdownMenu
-                              open={openMenuId === inst.id}
-                              onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}
-                            >
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                  {openMenuId === inst.id
-                                    ? <PanelTopClose className="h-4 w-4 text-muted-foreground" />
-                                    : <PanelTopOpen className="h-4 w-4 text-muted-foreground" />}
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const isFirstInstance = inst.id === firstInstanceId;
+                              const canDelete = !isFirstInstance && instances.length > 1;
+                              const hasExtendTrial =
+                                inst.isTrialInstance === true &&
+                                (inst.status === "TRIAL" || inst.status === "SUSPENDED") &&
+                                inst.expiresAt &&
+                                new Date(inst.expiresAt) < new Date();
+                              const hasEditName = !isBlocked;
+                              const hasManage = showManage;
+                              const hasAnyOption = hasEditName || hasManage || hasExtendTrial || canDelete;
+                              if (!hasAnyOption) return null;
 
-                                {!isBlocked && (
-                                  <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}>
-                                    <Pencil className="h-4 w-4 me-2" />
-                                    {t("editName")}
-                                  </DropdownMenuItem>
-                                )}
-                                {showManage && (
-                                  <DropdownMenuItem
-                                    className="cursor-pointer"
-                                    onClick={(e) => { e.stopPropagation(); handleManageSubscription(inst.id); }}
-                                    disabled={managingInstanceId === inst.id}
-                                  >
-                                    {managingInstanceId === inst.id
-                                      ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                                      : <ExternalLink className="h-4 w-4 me-2" />}
-                                    {t("manageSubscription")}
-                                  </DropdownMenuItem>
-                                )}
+                              return (
+                                <DropdownMenu
+                                  open={openMenuId === inst.id}
+                                  onOpenChange={(open) => setOpenMenuId(open ? inst.id : null)}
+                                >
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                      {openMenuId === inst.id
+                                        ? <PanelTopClose className="h-4 w-4 text-muted-foreground" />
+                                        : <PanelTopOpen className="h-4 w-4 text-muted-foreground" />}
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
 
-                                {/* Extend Trial - Shows only for expired free trial (once only) */}
-                                {inst.isTrialInstance === true &&
-                                  (inst.status === "TRIAL" || inst.status === "SUSPENDED") &&
-                                  inst.expiresAt &&
-                                  new Date(inst.expiresAt) < new Date() &&
-                                  (
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleExtendTrial(inst.id);
-                                      }}
-                                      disabled={extendingId === inst.id}
-                                      className="text-amber-600 focus:text-amber-600 font-medium cursor-pointer"
-                                    >
-                                      {extendingId === inst.id ? (
-                                        <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                                      ) : (
-                                        <CalendarDays className="h-4 w-4 me-2" />
-                                      )}
-                                      {t("extendTrial")}
-                                    </DropdownMenuItem>
-                                  )}
+                                    {hasEditName && (
+                                      <DropdownMenuItem className="cursor-pointer" onClick={(e) => { e.stopPropagation(); handleEdit(inst); }}>
+                                        <Pencil className="h-4 w-4 me-2" />
+                                        {t("editName")}
+                                      </DropdownMenuItem>
+                                    )}
 
-                                {isBlocked && instances.length > 1 && (
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive cursor-pointer"
-                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(inst.id); }}
-                                    disabled={deletingId === inst.id}
-                                  >
-                                    {deletingId === inst.id
-                                      ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                                      : <Trash2 className="h-4 w-4 me-2" />}
-                                    {t("delete")}
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>)}
+                                    {hasManage && (
+                                      <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={(e) => { e.stopPropagation(); handleManageSubscription(inst.id); }}
+                                        disabled={managingInstanceId === inst.id}
+                                      >
+                                        {managingInstanceId === inst.id
+                                          ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                          : <ExternalLink className="h-4 w-4 me-2" />}
+                                        {t("manageSubscription")}
+                                      </DropdownMenuItem>
+                                    )}
+
+                                    {hasExtendTrial && (
+                                      <DropdownMenuItem
+                                        onClick={(e) => { e.stopPropagation(); handleExtendTrial(inst.id); }}
+                                        disabled={extendingId === inst.id}
+                                        className="text-amber-600 focus:text-amber-600 font-medium cursor-pointer"
+                                      >
+                                        {extendingId === inst.id
+                                          ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                          : <CalendarDays className="h-4 w-4 me-2" />}
+                                        {t("extendTrial")}
+                                      </DropdownMenuItem>
+                                    )}
+
+                                    {canDelete && (
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive cursor-pointer"
+                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(inst.id); }}
+                                        disabled={deletingId === inst.id}
+                                      >
+                                        {deletingId === inst.id
+                                          ? <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                          : <Trash2 className="h-4 w-4 me-2" />}
+                                        {t("delete")}
+                                      </DropdownMenuItem>
+                                    )}
+
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                       </TableRow>
