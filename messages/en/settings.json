@@ -33,5 +33,33 @@
     "confirming": "Confirming...",
     "enableSuccess": "2FA enabled successfully",
     "disableSuccess": "2FA disabled successfully"
-  }
+  },
+  "tabs": {
+  "profile": "Profile",
+  "security": "Security",
+  "referral": "Referrals"
+},
+"referral": {
+  "title": "Referral Program",
+  "yourCode": "Your Referral Code",
+  "totalPoints": "Total Points",
+  "load": "Load Referral Data",
+  "loadError": "Failed to load referral data",
+  "withdraw": "Request Withdrawal",
+  "amount": "Amount",
+  "contactDetails": "Contact Details",
+  "contactPlaceholder": "e.g. Vodafone Cash: 01012345678",
+  "contact": "Contact",
+  "status": "Status",
+  "date": "Date",
+  "points": "Points",
+  "description": "Description",
+  "submit": "Submit Request",
+  "submitting": "Submitting...",
+  "withdrawSuccess": "Withdrawal request submitted",
+  "withdrawError": "Failed to submit withdrawal",
+  "withdrawHistory": "Withdrawal Requests",
+  "pointsHistory": "Points History",
+  "noActivity": "No referral activity yet. Share your code to start earning points!"
+}
 }

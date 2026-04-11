@@ -33,5 +33,33 @@
     "confirming": "جاري التأكيد...",
     "enableSuccess": "تم تفعيل المصادقة الثنائية بنجاح",
     "disableSuccess": "تم تعطيل المصادقة الثنائية بنجاح"
-  }
+  },
+  "tabs": {
+  "profile": "الملف الشخصي",
+  "security": "الأمان",
+  "referral": "الإحالات"
+},
+"referral": {
+  "title": "برنامج الإحالة",
+  "yourCode": "كود الإحالة الخاص بك",
+  "totalPoints": "إجمالي النقاط",
+  "load": "تحميل بيانات الإحالة",
+  "loadError": "فشل تحميل بيانات الإحالة",
+  "withdraw": "طلب سحب",
+  "amount": "المبلغ",
+  "contactDetails": "بيانات التواصل",
+  "contactPlaceholder": "مثال: فودافون كاش: 01012345678",
+  "contact": "التواصل",
+  "status": "الحالة",
+  "date": "التاريخ",
+  "points": "النقاط",
+  "description": "الوصف",
+  "submit": "إرسال الطلب",
+  "submitting": "جاري الإرسال...",
+  "withdrawSuccess": "تم إرسال طلب السحب بنجاح",
+  "withdrawError": "فشل إرسال طلب السحب",
+  "withdrawHistory": "طلبات السحب",
+  "pointsHistory": "سجل النقاط",
+  "noActivity": "لا يوجد نشاط إحالة بعد. شارك كودك لبدء كسب النقاط!"
+}
 }

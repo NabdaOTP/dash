@@ -46,6 +46,8 @@ export function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
 
+  const [referralCode, setReferralCode] = useState("");
+
   const router = useRouter();
   const t = useTranslations("auth");
   const locale = useLocale();
@@ -69,7 +71,7 @@ export function SignUpForm() {
     setLoading(true);
     try {
       const fullPhone = countryCode + phoneNumber;
-      await register({ name, email, phone: fullPhone, password });
+      await register({ name, email, phone: fullPhone, password, ...(referralCode.trim() && { referralCode: referralCode.trim() }) });
       await login({ email, password });
       router.push("/dashboard");
     } catch (err) {
@@ -237,6 +239,23 @@ export function SignUpForm() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">{t("signup.passwordHint")}</p>
+            </div>
+            {/* Referral Code - Optional */}
+            <div className="space-y-2">
+              <Label htmlFor="referralCode">
+                {t("signup.referralCode")}{" "}
+                <span className="text-muted-foreground text-xs">({t("signup.optional")})</span>
+              </Label>
+              <Input
+                id="referralCode"
+                type="text"
+                placeholder={t("signup.referralCodePlaceholder")}
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                className="h-11 bg-background font-mono tracking-wider"
+                disabled={loading}
+                maxLength={20}
+              />
             </div>
             {/* Terms */}
             <div className="flex items-start gap-3">

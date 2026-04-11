@@ -5,6 +5,8 @@ export interface User {
   phone: string;
   role: "OWNER" | "ADMIN" | "SUPER_ADMIN" | string;
   twoFactorEnabled: boolean;
+  referralCode?: string;   
+  totalPoints?: number;    
 }
 
 export interface Instance {
@@ -41,6 +43,7 @@ export interface RegisterRequest {
   email: string;
   phone: string;
   password: string;
+  referralCode?: string;
 }
 
 export interface VerifyOtpRequest {
