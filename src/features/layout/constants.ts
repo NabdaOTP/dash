@@ -1,4 +1,5 @@
 import {
+  Gift,
   HelpCircle,
   LayoutDashboard,
   Mail,
@@ -15,6 +16,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { path: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
   { path: "/instances", icon: Server, labelKey: "nav.instances" },
+  { path: "/referrals", icon: Gift, labelKey: "nav.referrals" },
   { path: "/contact", icon: Mail, labelKey: "nav.contact" },
   { path: "/faq", icon: HelpCircle, labelKey: "nav.faq" },
 ];
