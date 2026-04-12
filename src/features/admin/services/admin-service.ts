@@ -1,5 +1,5 @@
 import { api } from "@/lib/api-client";
-import { AdminInstance, AdminInvoice, AdminPlan, AdminProxy, AdminStatsData, AdminSubscription, AdminUser, PaginatedResponse, ProtectionLimit, ReconnectRequest, SoftBanRequest } from "../types";
+import { AdminInstance, AdminInvoice, AdminPlan, AdminProxy, AdminReferralSettings, AdminReferralWithdrawalsResponse, AdminStatsData, AdminSubscription, AdminUser, PaginatedResponse, ProtectionLimit, ReconnectRequest, ReferralBackfillResponse, SoftBanRequest, UpdateWithdrawalPayload, WithdrawalStatus } from "../types";
 
 const adminScope = { tokenScope: "user" as const };
 
@@ -163,4 +163,55 @@ export async function softBan(data: SoftBanRequest): Promise<void> {
 
 export async function reconnect(data: ReconnectRequest): Promise<void> {
   return api.post<void>("/api/v1/admin/protection/reconnect", data, adminScope);
+}
+// ====================== Referrals Admin ======================
+
+export async function getAdminReferralWithdrawals(
+  page = 1,
+  limit = 20,
+  status?: WithdrawalStatus
+): Promise<AdminReferralWithdrawalsResponse> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (status) params.set("status", status);
+
+  return api.get<AdminReferralWithdrawalsResponse>(
+    `/api/v1/admin/referrals/withdrawals?${params}`,
+    adminScope
+  );
+}
+
+export async function updateAdminReferralWithdrawal(
+  id: string,
+  data: UpdateWithdrawalPayload
+): Promise<void> {
+  return api.patch<void>(
+    `/api/v1/admin/referrals/withdrawals/${id}`,
+    data,
+    adminScope
+  );
+}
+
+export async function getAdminReferralSettings(): Promise<AdminReferralSettings> {
+  return api.get<AdminReferralSettings>(
+    "/api/v1/admin/referrals/settings",
+    adminScope
+  );
+}
+
+export async function updateAdminReferralSettings(
+  data: Partial<AdminReferralSettings>
+): Promise<AdminReferralSettings> {
+  return api.put<AdminReferralSettings>(
+    "/api/v1/admin/referrals/settings",
+    data,
+    adminScope
+  );
+}
+
+export async function backfillReferrals(): Promise<ReferralBackfillResponse> {
+  return api.post<ReferralBackfillResponse>(
+    "/api/v1/admin/referrals/backfill",
+    undefined,
+    adminScope
+  );
 }

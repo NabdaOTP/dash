@@ -329,16 +329,8 @@ export function SettingsPage() {
           </div>
         </TabsContent>
 
-        {/* ── Referral Tab ── */}
+        {/*  Referral Tab  */}
         <TabsContent value="referral" className="space-y-6">
-          {/* load on tab open */}
-          {/* {!referralStats && !referralLoading && (
-            <div className="flex justify-center py-4">
-              <Button variant="outline" onClick={fetchReferralStats}>
-                {t("referral.load")}
-              </Button>
-            </div>
-          )} */}
           {referralLoading && (
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />

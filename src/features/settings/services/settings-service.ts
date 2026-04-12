@@ -32,7 +32,7 @@ export async function disable2fa(code: string): Promise<void> {
   return api.post<void>("/api/v1/auth/disable-2fa", { code });
 }
 
-// ✅ Referrals
+// Referrals
 export interface ReferralHistory {
   id: string;
   points: number;
