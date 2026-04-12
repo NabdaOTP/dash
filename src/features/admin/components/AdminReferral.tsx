@@ -199,7 +199,7 @@ export function AdminReferral() {
                           <TableCell className="font-medium">{w.amount}</TableCell>
                           <TableCell>{w.contactDetails}</TableCell>
                           {/* adminNote */}
-                          <TableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
+                          <TableCell className="text-muted-foreground text-xs max-w-37.5 truncate">
                             {w.adminNote || "—"}
                           </TableCell>
                           <TableCell>
