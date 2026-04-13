@@ -166,3 +166,51 @@ export interface PaginatedResponse<T> {
     pages: number;
   };
 }
+
+// ====================== Referral Admin Types ======================
+
+export type WithdrawalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface AdminReferralWithdrawal {
+  id: string;
+  userId: string;
+  userName?: string;
+  amount: number;
+  contactDetails: string;
+  status: WithdrawalStatus;
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminReferralWithdrawalsResponse {
+  items: AdminReferralWithdrawal[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface UpdateWithdrawalPayload {
+  status: WithdrawalStatus;
+  adminNote?: string;
+}
+
+// Referral Settings
+export interface AdminReferralSettings {
+  id: string;
+  isEnabled: boolean;
+  minWithdrawalAmount: number;
+  recurringPointsPeriodMonths: number;
+  pointsPerSubscription: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Backfill Response
+export interface ReferralBackfillResponse {
+  message: string;
+  createdCount?: number;
+}

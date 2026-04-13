@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight,
   CreditCard,
   FileText,
+  Gift,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -27,6 +28,7 @@ const adminNavItems = [
   { path: "/admin/invoices", icon: Receipt, label: "Invoices" },
   { path: "/admin/plans", icon: CreditCard, label: "Plans" },
   { path: "/admin/subscriptions", icon: FileText, label: "Subscriptions" },
+  { path: "/admin/referral", icon: Gift, label: "Referrals" },
   { path: "/admin/proxies", icon: Settings, label: "Proxies" },
   { path: "/admin/protection", icon: Shield, label: "Protection" },
 ];
