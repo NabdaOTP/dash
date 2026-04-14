@@ -27,5 +27,11 @@
   "viewDocsDesc": "استكشاف مرجع API",
   "activeInstance": "نسخة نشطة",
   "stoppedInstance": "نسخة متوقفة",
-  "viewDetails": "عرض التفاصيل"
+  "viewDetails": "عرض التفاصيل",
+  "referralCardTitle": "اكسب نقاطاً بدعوة أصدقائك",
+  "referralCardDesc": "شارك كود الإحالة الخاص بك مع أي شخص. عندما يشتركون، تكسب نقاطاً يمكنك استبدالها بمكافآت.",
+  "referralCardCta": "عرض كود الإحالة",
+  "instanceCardTitle": "ما هو الـ Instance؟",
+  "instanceCardDesc": "الـ Instance هو اتصال واتساب المخصص لك. كل instance له API key ورقم هاتف خاص لإرسال الـ OTP.",
+  "instanceCardCta": "اعرف أكثر"
 }

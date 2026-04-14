@@ -27,5 +27,11 @@
   "viewDocsDesc": "Explore the API reference",
   "activeInstance": "ACTIVE Instance",
   "stoppedInstance": "STOPPED Instance",
-  "viewDetails": "View Details"
+  "viewDetails": "View Details",
+  "referralCardTitle": "Earn Points by Referring Friends",
+  "referralCardDesc": "Share your referral code with anyone. When they subscribe, you earn points you can redeem for rewards.",
+  "referralCardCta": "View my referral code",
+  "instanceCardTitle": "What is an Instance?",
+  "instanceCardDesc": "An instance is your dedicated WhatsApp connection. Each instance has its own API key and phone number for sending OTPs.",
+  "instanceCardCta": "Learn more"
 }
