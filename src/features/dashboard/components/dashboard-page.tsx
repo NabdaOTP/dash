@@ -34,7 +34,7 @@ export function DashboardPage() {
     if (document.visibilityState === "visible") {
       fetchData();           
     }
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     document.addEventListener("visibilitychange", handlePageBecomeVisible);
