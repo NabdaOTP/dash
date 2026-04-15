@@ -112,6 +112,24 @@ export function InstancesPage() {
 
   useEffect(() => { fetchInstances(); }, [fetchInstances]);
 
+
+  // To solve  Tab Freezing or Page Inactivity
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchInstances();           // Refresh the table when user returns to the tab
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);   // Extra safety
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
+  }, [fetchInstances]);
+
   const handleCreate = async () => {
     const minDelay = new Promise((res) => setTimeout(res, 1500));
     setShowCreateConfirm(false);

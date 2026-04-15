@@ -187,6 +187,24 @@ export function WhatsAppSection({ instanceId, locale = "en" }: WhatsAppSectionPr
     return () => clearInterval(interval);
   }, [instanceId, fetchData, error?.is401, status?.status]);
 
+  // ====================== Page Visibility Fix ======================
+  // This fixes the tab freezing / inactivity issue
+  const handlePageBecomeVisible = useCallback(() => {
+    if (document.visibilityState === "visible") {
+      fetchData(false);   // Refresh WhatsApp status when user returns to the tab
+    }
+  }, [fetchData]);
+
+  useEffect(() => {
+    document.addEventListener("visibilitychange", handlePageBecomeVisible);
+    window.addEventListener("focus", handlePageBecomeVisible);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handlePageBecomeVisible);
+      window.removeEventListener("focus", handlePageBecomeVisible);
+    };
+  }, [handlePageBecomeVisible]);
+
   const handleRefreshQr = useCallback(async () => {
     if (normalizeStatus(status?.status ?? "") === "connected") return;
     setRefreshingQr(true);

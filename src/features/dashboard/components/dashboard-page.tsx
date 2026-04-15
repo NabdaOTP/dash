@@ -1,11 +1,10 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import { ArrowRight, BookOpen, Gift, Layers, Loader2, Plus } from "lucide-react";
+import { ArrowRight, BookOpen, Gift, Layers, Loader2, Plus, Server } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
-
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +28,24 @@ export function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  //====================== Page Visibility Fix ======================
+  // This solves the tab freezing / inactivity issue
+  const handlePageBecomeVisible = useCallback(() => {
+    if (document.visibilityState === "visible") {
+      fetchData();           
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("visibilitychange", handlePageBecomeVisible);
+    window.addEventListener("focus", handlePageBecomeVisible);   // Extra safety
+
+    return () => {
+      document.removeEventListener("visibilitychange", handlePageBecomeVisible);
+      window.removeEventListener("focus", handlePageBecomeVisible);
+    };
+  }, [handlePageBecomeVisible]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -47,7 +64,6 @@ export function DashboardPage() {
       </div>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
         {/* Active Instances */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-green-200 dark:border-green-900">
           <div className="bg-[#4caf50] p-6 flex items-center justify-between">
@@ -67,7 +83,6 @@ export function DashboardPage() {
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
-
         {/* Stopped Instances */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-red-200 dark:border-red-900">
           <div className="bg-[#f44336] p-6 flex items-center justify-between">
@@ -87,7 +102,6 @@ export function DashboardPage() {
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
-
         {/* Referral Points Card */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-red-200 dark:border-red-900">
           <div style={{ backgroundColor: "#7c3aed" }} className="p-6 flex items-center justify-between">
@@ -110,7 +124,6 @@ export function DashboardPage() {
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
-
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
@@ -143,6 +156,40 @@ export function DashboardPage() {
             </div>
           </div>
         </Link>
+      </div>
+      {/* Instruction Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        {/* Referral Card */}
+        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
+          <div className="h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-950 flex items-center justify-center">
+            <Gift className="h-5 w-5 text-violet-600" />
+          </div>
+          <h3 className="font-semibold text-foreground">{t("referralCardTitle")}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {t("referralCardDesc")}
+          </p>
+          <Link href="/referrals" className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1">
+            {t("referralCardCta")} <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {/* Instance Card */}
+        <div className="bg-card rounded-xl border border-border p-6 space-y-3">
+          <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
+            <Server className="h-5 w-5 text-blue-600" />
+          </div>
+          <h3 className="font-semibold text-foreground">{t("instanceCardTitle")}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {t("instanceCardDesc")}
+          </p>
+          <Link href="https://www.nabdaotp.com/blogs/whatsapp-otp-iraq-guide"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1">
+            {t("instanceCardCta")} <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
     </div>
   );
