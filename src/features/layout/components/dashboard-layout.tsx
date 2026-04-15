@@ -1,16 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { usePathname, useRouter } from "@/i18n/navigation";
-import { Link } from "@/i18n/navigation";
-import {
-  ChevronLeft,
-  ChevronRight,
-  User,
-  LogOut,
-  Settings,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,12 +8,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Settings,
+  User,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
 // import { ThemeToggle } from "./theme-toggle";
-import { LanguageSwitcher } from "./language-switcher";
-import { navItems } from "../constants";
 import { useAuth } from "@/features/auth/context/auth-context";
 import Image from "next/image";
-import { WhatsAppSection } from "@/features/whatsapp/components/WhatsAppSection";
+import { navItems } from "../constants";
+import { LanguageSwitcher } from "./language-switcher";
 import WhatsAppFloat from "./whatsapp-float";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +44,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     }
   }, [isLoading, isAuthenticated, router]);
+
+
+  // ====================== Page Visibility Fix ======================
+  // This solves the "tab freezing / inactivity" issue
+  const handlePageBecomeVisible = useCallback(() => {
+    if (document.visibilityState === "visible") {
+      // Soft refresh the current route (best for Next.js App Router)
+      router.refresh();
+    }
+  }, [router]);
+
+  useEffect(() => {
+    document.addEventListener("visibilitychange", handlePageBecomeVisible);
+    window.addEventListener("focus", handlePageBecomeVisible); // Extra safety
+
+    return () => {
+      document.removeEventListener("visibilitychange", handlePageBecomeVisible);
+      window.removeEventListener("focus", handlePageBecomeVisible);
+    };
+  }, [handlePageBecomeVisible]);
 
   if (isLoading || !isAuthenticated) {
     return (

@@ -3,7 +3,7 @@
 import { Link } from "@/i18n/navigation";
 import { ArrowRight, BookOpen, Gift, Layers, Loader2, Plus, Server } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -27,6 +27,24 @@ export function DashboardPage() {
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  //====================== Page Visibility Fix ======================
+  // This solves the tab freezing / inactivity issue
+  const handlePageBecomeVisible = useCallback(() => {
+    if (document.visibilityState === "visible") {
+      fetchData();           
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("visibilitychange", handlePageBecomeVisible);
+    window.addEventListener("focus", handlePageBecomeVisible);   // Extra safety
+
+    return () => {
+      document.removeEventListener("visibilitychange", handlePageBecomeVisible);
+      window.removeEventListener("focus", handlePageBecomeVisible);
+    };
+  }, [handlePageBecomeVisible]);
 
   if (loading) {
     return (
