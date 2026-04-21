@@ -153,7 +153,7 @@ export default function AdminInstancesPage() {
                                             </TableCell>
                                             <TableCell className="font-medium text-sm">{inst.name}</TableCell>
                                             <TableCell className="text-xs font-mono text-muted-foreground">
-                                                {inst.ownerId?.slice(0, 8)}...
+                                                {inst.ownerId}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className={`text-xs ${statusStyles[inst.status] ?? "bg-muted text-muted-foreground"}`}>
