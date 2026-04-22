@@ -1,0 +1,134 @@
+{
+  "page": {
+    "title": "الحزم",
+    "description": "قم بتجميع أرقام واتساب متعددة تحت حزمة واحدة",
+    "newBundle": "حزمة جديدة"
+  },
+  "empty": {
+    "title": "لا توجد حزم بعد",
+    "description": "أنشئ حزمة لتجميع أرقام واتساب متعددة معاً",
+    "cta": "أنشئ حزمتك الأولى",
+    "hint": "تقدر تعمل أكتر من bundle لمشاريع أو عملاء مختلفين.",
+  "feature1Title": "إرسال OTP فوري",
+  "feature1Desc": "ابعت كلمات المرور عبر واتساب بـ API call واحدة باستخدام الـ key الخاص بالـ bundle.",
+  "feature2Title": "معزول وآمن",
+  "feature2Desc": "كل bundle عنده API key وـ slots خاصة بيه — مثالي لفصل المشاريع أو العملاء.",
+  "feature3Title": "دعم الـ Webhook",
+  "feature3Desc": "استقبل إشعارات التسليم في الوقت الفعلي عشان تعرف دايماً حالة كل رسالة."
+  },
+  "card": {
+    "createdAt": "أُنشئت {date}",
+    "manage": "إدارة"
+  },
+  "status": {
+    "ACTIVE": "نشط",
+    "SUSPENDED": "موقوف"
+  },
+  "slotStatus": {
+    "ACTIVE": "نشط",
+    "PAYMENT_PENDING": "في انتظار الدفع",
+    "SUSPENDED": "موقوف"
+  },
+  "sessionStatus": {
+    "CONNECTED": "متصل",
+    "CONNECTING": "جارٍ الاتصال",
+    "RECONNECTING": "جارٍ إعادة الاتصال",
+    "DISCONNECTED": "غير متصل"
+  },
+  "actions": {
+    "suspend": "إيقاف",
+    "activate": "تفعيل",
+    "delete": "حذف"
+  },
+  "createDialog": {
+    "title": "إنشاء حزمة جديدة",
+    "description": "تجمع الحزمة أرقام واتساب متعددة تحت مفتاح API واحد ورابط webhook.",
+    "nameLabel": "اسم الحزمة",
+    "webhookLabel": "رابط Webhook",
+    "optional": "(اختياري)",
+    "namePlaceholder": "مثال: حزمة OTP ألفا",
+    "webhookPlaceholder": "https://your-app.com/webhook",
+    "cancel": "إلغاء",
+    "submit": "إنشاء الحزمة"
+  },
+  "deleteDialog": {
+    "title": "حذف الحزمة",
+    "description": "هل أنت متأكد؟ سيؤدي هذا إلى حذف الحزمة وجميع مساراتها. لا يمكن التراجع عن هذا الإجراء.",
+    "cancel": "إلغاء",
+    "confirm": "حذف"
+  },
+  "detail": {
+    "notFound": "الحزمة غير موجودة",
+    "slots": {
+      "title": "المسارات",
+      "description": "كل مسار هو رقم واتساب في هذه الحزمة",
+      "addSlot": "إضافة مسار",
+      "redirecting": "جارٍ التحويل…",
+      "empty": "لا توجد مسارات بعد — أضف رقم واتساب الأول",
+      "noSession": "لا توجد جلسة",
+      "table": {
+        "index": "#",
+        "name": "الاسم",
+        "status": "الحالة",
+        "session": "الجلسة",
+        "phone": "الهاتف",
+        "expires": "تاريخ الانتهاء",
+        "actions": "الإجراءات"
+      },
+      "deleteDialog": {
+        "title": "حذف المسار",
+        "description": "هل أنت متأكد من حذف هذا المسار؟ سيتم قطع اتصال رقم واتساب.",
+        "cancel": "إلغاء",
+        "confirm": "حذف المسار"
+      }
+    },
+    "apiKey": {
+      "title": "مفتاح API",
+      "description": "استخدم هذا المفتاح للمصادقة مع Nabda API",
+      "rotateKey": "تدوير مفتاح API",
+      "newKeyWarning": "انسخ مفتاح API الجديد الآن — لن يُعرض مجدداً."
+    },
+    "webhook": {
+      "title": "Webhook",
+      "description": "استقبل إشعارات الأحداث الفورية لجميع مسارات هذه الحزمة",
+      "enabled": "مفعّل",
+      "disabled": "معطّل",
+      "enableLabel": "تفعيل Webhook",
+      "enableDescription": "إرسال الأحداث إلى رابطك",
+      "urlLabel": "رابط Webhook",
+      "urlPlaceholder": "https://your-app.com/webhook",
+      "saveButton": "حفظ إعدادات Webhook"
+    }
+  },
+  "toast": {
+    "loadError": "فشل تحميل الحزم",
+    "loadDetailError": "فشل تحميل تفاصيل الحزمة",
+    "createSuccess": "تم إنشاء الحزمة بنجاح",
+    "createError": "فشل إنشاء الحزمة",
+    "deleteSuccess": "تم حذف الحزمة",
+    "deleteError": "فشل حذف الحزمة",
+    "activated": "تم تفعيل الحزمة",
+    "suspended": "تم إيقاف الحزمة",
+    "statusError": "فشل تحديث الحالة",
+    "webhookUrlRequired": "الرجاء إدخال رابط Webhook",
+    "webhookUrlHttps": "يجب أن يبدأ رابط Webhook بـ https://",
+    "webhookSaved": "تم حفظ إعدادات Webhook",
+    "webhookError": "فشل حفظ Webhook",
+    "apiKeyRotated": "تم تدوير مفتاح API بنجاح",
+    "apiKeyRotateError": "فشل تدوير مفتاح API",
+    "purchaseError": "فشل شراء المسار",
+    "slotDeleted": "تم حذف المسار",
+    "slotDeleteError": "فشل حذف المسار"
+  },
+"suspendDialog": {
+  "title": "تعليق الـ bundle؟",
+  "description": "أنت على وشك تعليق \"{name}\". ده إجراء مؤثر هيأثر على أي integrations شغالة بتستخدم الـ bundle ده.",
+  "consequencesTitle": "اللي هيحصل",
+  "consequence1": "كل طلبات الـ API للـ bundle دي هترفض فوراً.",
+  "consequence2": "الـ WhatsApp slots المتصلة هتوقف عن الإرسال والاستقبال.",
+  "consequence3": "الـ Webhook callbacks مش هتتفعل تاني.",
+  "reactivateNote": "تقدر تعيد تفعيل الـ bundle في أي وقت من نفس القائمة.",
+  "cancel": "إلغاء",
+  "confirm": "نعم، علّق الـ bundle"
+}
+}

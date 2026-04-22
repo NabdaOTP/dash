@@ -3,6 +3,7 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "instances": "النُسخ",
+    "bundles":"حزم",
     "referrals": "الإحالة والنقاط",
     "apiDocs": "توثيق API",
     "faq": "الأسئلة الشائعة",

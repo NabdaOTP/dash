@@ -25,6 +25,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const faq = (await import(`../../messages/${locale}/faq.json`)).default;
   const contact = (await import(`../../messages/${locale}/contact.json`))
     .default;
+  const bundles = (await import(`../../messages/${locale}/bundles.json`))
+    .default;
 
   return {
     locale,
@@ -39,6 +41,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
       apiDocs,
       faq,
       contact,
+      bundles,
     },
   };
 });

@@ -1,45 +1,50 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import { ArrowRight, BookOpen, Gift, Layers, Loader2, Plus, Server } from "lucide-react";
+import { ArrowRight, BookOpen, Gift, Layers, Loader2, Package, Plus, Server } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { getDashboardData, type DashboardStats } from "../services/dashboard-service";
+import { getMyBundles } from "@/features/bundles/services/bundle-service";
+
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [bundleCount, setBundleCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const t = useTranslations("dashboard");
   const locale = useLocale();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const data = await getDashboardData();
+      const [data, bundles] = await Promise.all([
+        getDashboardData(),
+        getMyBundles(),
+      ]);
       setStats(data);
+      setBundleCount(bundles.length);
     } catch {
       // handled by api client
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
-  //====================== Page Visibility Fix ======================
-  // This solves the tab freezing / inactivity issue
+  // ====================== Page Visibility Fix ======================
   const handlePageBecomeVisible = useCallback(() => {
     if (document.visibilityState === "visible") {
-      fetchData();           
+      fetchData();
     }
   }, [fetchData]);
 
   useEffect(() => {
     document.addEventListener("visibilitychange", handlePageBecomeVisible);
-    window.addEventListener("focus", handlePageBecomeVisible);   // Extra safety
-
+    window.addEventListener("focus", handlePageBecomeVisible);
     return () => {
       document.removeEventListener("visibilitychange", handlePageBecomeVisible);
       window.removeEventListener("focus", handlePageBecomeVisible);
@@ -54,16 +59,19 @@ export function DashboardPage() {
     );
   }
 
-  const activeCount = stats?.activeInstances ?? 0;
+  const activeCount  = stats?.activeInstances ?? 0;
   const stoppedCount = stats?.stoppedInstances ?? 0;
-  const totalPoints = stats?.totalPoints ?? 0;
+  const totalPoints  = stats?.totalPoints ?? 0;
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">{t("welcome")}</h1>
       </div>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+      {/* Stats Cards — 2x2 grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+
         {/* Active Instances */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-green-200 dark:border-green-900">
           <div className="bg-[#4caf50] p-6 flex items-center justify-between">
@@ -83,6 +91,7 @@ export function DashboardPage() {
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
+
         {/* Stopped Instances */}
         <div className="rounded-xl overflow-hidden shadow-sm border border-red-200 dark:border-red-900">
           <div className="bg-[#f44336] p-6 flex items-center justify-between">
@@ -102,8 +111,9 @@ export function DashboardPage() {
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
-        {/* Referral Points Card */}
-        <div className="rounded-xl overflow-hidden shadow-sm border border-red-200 dark:border-red-900">
+
+        {/* Referral Points */}
+        <div className="rounded-xl overflow-hidden shadow-sm border border-violet-200 dark:border-violet-900">
           <div style={{ backgroundColor: "#7c3aed" }} className="p-6 flex items-center justify-between">
             <div>
               <p className="text-4xl font-bold text-white">{totalPoints}</p>
@@ -116,15 +126,37 @@ export function DashboardPage() {
           <Link
             href="/referrals"
             style={{ backgroundColor: "#6d28d9" }}
-            className="flex items-center justify-between bg-[#6d28d9] px-6 py-3 
-               hover:bg-[#5b21b6] active:bg-[#4c1d95] 
-               transition-all duration-200 group"
+            className="flex items-center justify-between px-6 py-3 hover:bg-[#5b21b6] transition-colors group"
           >
             <span className="text-white font-medium text-sm">{t("viewDetails")}</span>
             <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
+
+        {/* ✅ Bundles */}
+        <div className="rounded-xl overflow-hidden shadow-sm border border-blue-200 dark:border-blue-900">
+          <div style={{ backgroundColor: "#1d4ed8" }} className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-4xl font-bold text-white">{bundleCount}</p>
+              <p className="text-white/90 font-semibold mt-1 uppercase tracking-wide text-sm">
+                {t("bundles")}
+              </p>
+            </div>
+            <Package className="h-14 w-14 text-white/30" />
+          </div>
+          <Link
+          style={{ backgroundColor: "#1e40af" }}
+            href="/bundles"
+            className="flex items-center justify-between bg-[#1e40af] px-6 py-3 hover:bg-[#1e3a8a] transition-colors group"
+          >
+            <span className="text-white font-medium text-sm">{t("viewDetails")}</span>
+            <ArrowRight className="h-4 w-4 text-white group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+
       </div>
+
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
           href="/instances"
@@ -157,36 +189,30 @@ export function DashboardPage() {
           </div>
         </Link>
       </div>
+
       {/* Instruction Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-        {/* Referral Card */}
         <div className="bg-card rounded-xl border border-border p-6 space-y-3">
           <div className="h-10 w-10 rounded-lg bg-violet-100 dark:bg-violet-950 flex items-center justify-center">
             <Gift className="h-5 w-5 text-violet-600" />
           </div>
           <h3 className="font-semibold text-foreground">{t("referralCardTitle")}</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {t("referralCardDesc")}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t("referralCardDesc")}</p>
           <Link href="/referrals" className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1">
             {t("referralCardCta")} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-
-        {/* Instance Card */}
         <div className="bg-card rounded-xl border border-border p-6 space-y-3">
           <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
             <Server className="h-5 w-5 text-blue-600" />
           </div>
           <h3 className="font-semibold text-foreground">{t("instanceCardTitle")}</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {t("instanceCardDesc")}
-          </p>
-          <Link href="https://www.nabdaotp.com/blogs/whatsapp-otp-iraq-guide"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1">
+          <p className="text-sm text-muted-foreground leading-relaxed">{t("instanceCardDesc")}</p>
+          <Link
+            href="https://www.nabdaotp.com/blogs/whatsapp-otp-iraq-guide"
+            target="_blank" rel="noopener noreferrer"
+            className="text-sm text-primary font-medium hover:underline inline-flex items-center gap-1"
+          >
             {t("instanceCardCta")} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
