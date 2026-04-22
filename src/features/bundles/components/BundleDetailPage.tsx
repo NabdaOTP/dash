@@ -11,17 +11,22 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   getBundleById, getBundleSlots, updateBundle,
-  purchaseBundleSlot, deleteBundleSlot, rotateBundleApiKey,
+  purchaseBundleSlot, repurchaseBundleSlot, deleteBundleSlot, rotateBundleApiKey,
 } from "@/features/bundles/services/bundle-service";
 import type { BundleDetails, BundleSlot } from "@/features/bundles/types";
 import {
   Loader2, Webhook, Key, Plus, Trash2, RefreshCw,
   Copy, Check, ArrowLeft, Server, Wifi, WifiOff,
   CreditCard, AlertTriangle, MessageSquare,
+  ChevronDown, CalendarDays, CalendarRange,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -55,8 +60,9 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
   const [showRotateConfirm, setShowRotateConfirm] = useState(false);
 
   const [purchasing, setPurchasing] = useState(false);
-  const [showPurchaseConfirm, setShowPurchaseConfirm] = useState(false);
-  const [payingSlotId, setPayingSlotId] = useState<string | null>(null); // ✅ للـ pay per slot
+  const [openAddSlotMenu, setOpenAddSlotMenu] = useState(false);
+  const [payingSlotId, setPayingSlotId] = useState<string | null>(null);
+  const [openPayMenuId, setOpenPayMenuId] = useState<string | null>(null);
   const [deletingSlotId, setDeletingSlotId] = useState<string | null>(null);
   const [confirmDeleteSlotId, setConfirmDeleteSlotId] = useState<string | null>(null);
 
@@ -125,12 +131,12 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ✅ Add new slot ( header button)
-  const handlePurchaseSlot = async () => {
-    setShowPurchaseConfirm(false);
+  // ✅ Add new slot بـ interval
+  const handlePurchaseSlot = async (interval: "MONTHLY" | "YEARLY") => {
+    setOpenAddSlotMenu(false);
     setPurchasing(true);
     try {
-      const result = await purchaseBundleSlot(bundleId);
+      const result = await purchaseBundleSlot(bundleId, interval);
       if (result.checkoutUrl) window.location.href = result.checkoutUrl;
     } catch (err: unknown) {
       toast.error((err as { message?: string })?.message ?? t("toast.purchaseError"));
@@ -138,11 +144,12 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
     }
   };
 
-  // ✅ Pay  slot  PAYMENT_PENDING
-  const handlePaySlot = async (slotId: string) => {
+  // ✅ Repurchase existing slot بـ interval
+  const handleRepurchaseSlot = async (slotId: string, interval: "MONTHLY" | "YEARLY") => {
+    setOpenPayMenuId(null);
     setPayingSlotId(slotId);
     try {
-      const result = await purchaseBundleSlot(bundleId);
+      const result = await repurchaseBundleSlot(bundleId, slotId, interval);
       if (result.checkoutUrl) window.location.href = result.checkoutUrl;
     } catch (err: unknown) {
       toast.error((err as { message?: string })?.message ?? t("toast.purchaseError"));
@@ -176,7 +183,8 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
     return <div className="text-center py-20 text-muted-foreground">{t("detail.notFound")}</div>;
   }
 
-  const displayApiKey = newApiKey ?? bundle.apiKey?.prefix ?? "sk_";
+  // ✅ API key بيرجع كـ string مباشرة دلوقتي
+  const displayApiKey = newApiKey ?? (typeof bundle.apiKey === "string" ? bundle.apiKey : null);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -190,7 +198,6 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
           <p className="text-xs text-muted-foreground font-mono">{bundle.slug}</p>
         </div>
         <div className="ms-auto flex items-center gap-2">
-          {/* ✅ Messages icon button got to message page*/}
           <Button
             variant="outline" size="sm"
             className="gap-2 cursor-pointer"
@@ -199,7 +206,7 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
             <MessageSquare className="h-4 w-4" />
             Messages
           </Button>
-          <Badge variant="outline" className={bundle.status === "ACTIVE" ? "bg-green-100 text-green-700 border-green-200 " : "bg-red-100 text-red-700 border-red-200"}>
+          <Badge variant="outline" className={bundle.status === "ACTIVE" ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"}>
             {t(`status.${bundle.status}`)}
           </Badge>
         </div>
@@ -217,15 +224,41 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
               </CardTitle>
               <CardDescription className="text-xs mt-1">{t("detail.slots.description")}</CardDescription>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setShowPurchaseConfirm(true)}
-              disabled={purchasing}
-              className="gradient-primary text-primary-foreground gap-2 cursor-pointer"
-            >
-              {purchasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              {purchasing ? t("detail.slots.redirecting") : t("detail.slots.addSlot")}
-            </Button>
+
+            {/* ✅ Add Slot dropdown — monthly/yearly */}
+            <DropdownMenu open={openAddSlotMenu} onOpenChange={setOpenAddSlotMenu}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  disabled={purchasing}
+                  className="gradient-primary text-primary-foreground gap-1.5 cursor-pointer"
+                >
+                  {purchasing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  {purchasing ? t("detail.slots.redirecting") : t("detail.slots.addSlot")}
+                  {!purchasing && <ChevronDown className="h-3 w-3" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Choose a plan
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer" onClick={() => handlePurchaseSlot("MONTHLY")}>
+                  <CalendarDays className="h-4 w-4 me-2 text-[#7C3AED]" />
+                  <div>
+                    <p className="font-medium">Monthly</p>
+                    <p className="text-xs text-muted-foreground">$15 / month</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => handlePurchaseSlot("YEARLY")}>
+                  <CalendarRange className="h-4 w-4 me-2 text-[#7C3AED]" />
+                  <div>
+                    <p className="font-medium">Annual</p>
+                    <p className="text-xs text-muted-foreground">$165 / year — 1 month free</p>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -282,9 +315,10 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
                       <TableCell className="text-xs text-muted-foreground">
                         {slot.expiresAt ? new Date(slot.expiresAt).toLocaleDateString() : "—"}
                       </TableCell>
-                      {/* ✅ Actions: Manage (active) + Pay (pending) + Delete */}
+
                       <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
+                          {/* Manage — active only */}
                           {isActive && (
                             <Button
                               size="sm" variant="default"
@@ -294,19 +328,59 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
                               Manage
                             </Button>
                           )}
+
+                          {/* ✅ Pay dropdown — PAYMENT_PENDING only */}
                           {isPending && (
-                            <Button
-                              size="sm" variant="default"
-                              className="h-7 px-2 text-xs bg-linear-to-r from-[#A78BFA] to-[#7C3AED] text-white gap-1 cursor-pointer"
-                              onClick={(e) => { e.stopPropagation(); handlePaySlot(slot.id); }}
-                              disabled={payingSlotId === slot.id}
+                            <DropdownMenu
+                              open={openPayMenuId === slot.id}
+                              onOpenChange={(open) => setOpenPayMenuId(open ? slot.id : null)}
                             >
-                              {payingSlotId === slot.id
-                                ? <Loader2 className="h-3 w-3 animate-spin" />
-                                : <CreditCard className="h-3 w-3" />}
-                              Pay
-                            </Button>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm" variant="default"
+                                  className="h-7 px-2 text-xs bg-linear-to-r from-[#A78BFA] to-[#7C3AED] hover:from-[#9F7AEA] hover:to-[#6D28D9] text-white gap-1 cursor-pointer"
+                                  disabled={payingSlotId === slot.id}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {payingSlotId === slot.id
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <CreditCard className="h-3 w-3" />}
+                                  Pay
+                                  {payingSlotId !== slot.id && <ChevronDown className="h-3 w-3" />}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                  Choose a plan
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => handleRepurchaseSlot(slot.id, "MONTHLY")}
+                                  disabled={payingSlotId === slot.id}
+                                >
+                                  <CalendarDays className="h-4 w-4 me-2 text-[#7C3AED]" />
+                                  <div>
+                                    <p className="font-medium">Monthly</p>
+                                    <p className="text-xs text-muted-foreground">$15 / month</p>
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => handleRepurchaseSlot(slot.id, "YEARLY")}
+                                  disabled={payingSlotId === slot.id}
+                                >
+                                  <CalendarRange className="h-4 w-4 me-2 text-[#7C3AED]" />
+                                  <div>
+                                    <p className="font-medium">Annual</p>
+                                    <p className="text-xs text-muted-foreground">$165 / year — 1 month free</p>
+                                  </div>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
+
+                          {/* Delete */}
                           <Button
                             variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive cursor-pointer"
                             onClick={(e) => { e.stopPropagation(); setConfirmDeleteSlotId(slot.id); }}
@@ -327,7 +401,7 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
         </CardContent>
       </Card>
 
-      {/* ─── API Key */}
+      {/* ─── API Key ───────────────────────────────────────────────── */}
       <Card className="border border-border">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -338,18 +412,23 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-muted rounded-lg px-4 py-2.5 font-mono text-sm">
-              {newApiKey ?? `${bundle.apiKey?.prefix ?? "sk_"}••••••••••••••••`}
+            {/* ✅ API key كامل بدون bullets */}
+            <div className="flex-1 bg-muted rounded-lg px-4 py-2.5 font-mono text-sm break-all">
+              {newApiKey ?? (typeof bundle.apiKey === "string" ? bundle.apiKey : "—")}
             </div>
-            <Button className="cursor-pointer" variant="outline" size="icon" onClick={() => handleCopy(displayApiKey)}>
+            <Button
+              className="cursor-pointer shrink-0"
+              variant="outline" size="icon"
+              onClick={() => displayApiKey && handleCopy(displayApiKey)}
+            >
               {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>
-          {newApiKey && (
+          {/* {newApiKey && (
             <p className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
               ⚠️ {t("detail.apiKey.newKeyWarning")}
             </p>
-          )}
+          )} */}
           <Button
             variant="outline" size="sm"
             onClick={() => setShowRotateConfirm(true)}
@@ -362,7 +441,7 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
         </CardContent>
       </Card>
 
-      {/* ─── Webhook */}
+      {/* ─── Webhook ───────────────────────────────────────────────── */}
       <Card className="border border-border">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -401,28 +480,7 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
         </CardContent>
       </Card>
 
-      {/* ✅ Purchase Slot Confirmation */}
-      <Dialog open={showPurchaseConfirm} onOpenChange={setShowPurchaseConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Add New Slot
-            </DialogTitle>
-            <DialogDescription>
-              Adding a new slot will redirect you to Stripe to complete the payment. Each slot is a paid WhatsApp number in this bundle.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button className="cursor-pointer" variant="outline" onClick={() => setShowPurchaseConfirm(false)}>Cancel</Button>
-            <Button onClick={handlePurchaseSlot} className="gradient-primary text-primary-foreground cursor-pointer">
-              Continue to Payment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ✅ Rotate API Key Confirmation */}
+      {/* Rotate API Key Confirmation */}
       <Dialog open={showRotateConfirm} onOpenChange={setShowRotateConfirm}>
         <DialogContent>
           <DialogHeader>
@@ -456,7 +514,7 @@ export function BundleDetailPage({ bundleId }: { bundleId: string }) {
               {t("detail.slots.deleteDialog.cancel")}
             </Button>
             <Button
-            className="cursor-pointer"
+              className="cursor-pointer"
               variant="destructive"
               onClick={() => confirmDeleteSlotId && handleDeleteSlot(confirmDeleteSlotId)}
               disabled={!!deletingSlotId}

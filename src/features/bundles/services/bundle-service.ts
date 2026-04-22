@@ -66,13 +66,21 @@ export async function getBundleSlots(id: string): Promise<BundleSlot[]> {
   return Array.isArray(result) ? result : [];
 }
 
-export async function purchaseBundleSlot(id: string): Promise<{ instanceId: string; checkoutUrl: string }> {
-  return api.post<{ instanceId: string; checkoutUrl: string }>(
-    `/api/v1/bundles/${id}/slots`, {}, userScope
-  );
+export async function purchaseBundleSlot(
+  id: string,
+  interval: "MONTHLY" | "YEARLY"
+): Promise<{ instanceId: string; checkoutUrl: string }> {
+  return api.post(`/api/v1/bundles/${id}/slots`, { interval }, userScope);
 }
 
 export async function deleteBundleSlot(bundleId: string, slotId: string): Promise<void> {
   return api.delete<void>(`/api/v1/bundles/${bundleId}/slots/${slotId}`, userScope);
 }
 
+export async function repurchaseBundleSlot(
+  bundleId: string,
+  slotId: string,
+  interval: "MONTHLY" | "YEARLY"
+): Promise<{ checkoutUrl: string }> {
+  return api.post(`/api/v1/bundles/${bundleId}/slots/${slotId}/repurchase`, { interval }, userScope);
+}
