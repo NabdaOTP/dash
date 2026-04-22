@@ -3,6 +3,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "instances": "Instances",
+    "bundles": "bundles",
     "referrals": "Referrals",
     "apiDocs": "API Docs",
     "faq": "FAQ",
